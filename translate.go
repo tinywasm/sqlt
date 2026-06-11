@@ -21,6 +21,12 @@ func translateQuery(q orm.Query, m fmt.Model) (string, []any, error) {
 		return buildCreateTable(q, m)
 	case orm.ActionDropTable:
 		return buildDropTable(q)
+	case orm.ActionAddColumn:
+		return buildAddColumn(q)
+	case orm.ActionRenameColumn:
+		return buildRenameColumn(q)
+	case orm.ActionDropColumn:
+		return buildDropColumn(q)
 	default:
 		return "", nil, fmt.Errf("unknown query action: %v", q.Action)
 	}
@@ -99,6 +105,29 @@ func buildDropTable(q orm.Query) (string, []any, error) {
 		return "", nil, fmt.Err("table name is required for drop table")
 	}
 	return fmt.Sprintf("DROP TABLE IF EXISTS %s", q.Table), nil, nil
+}
+
+func buildAddColumn(q orm.Query) (string, []any, error) {
+	if q.Column == nil || q.Table == "" {
+		return "", nil, fmt.Err("table and column required for add column")
+	}
+	return fmt.Sprintf("ALTER TABLE %s ADD COLUMN %s %s",
+		q.Table, q.Column.Name, sqliteType(q.Column.Type)), nil, nil
+}
+
+func buildRenameColumn(q orm.Query) (string, []any, error) {
+	if q.Column == nil || q.OldName == "" || q.Table == "" {
+		return "", nil, fmt.Err("table, old name and column required for rename")
+	}
+	return fmt.Sprintf("ALTER TABLE %s RENAME COLUMN %s TO %s",
+		q.Table, q.OldName, q.Column.Name), nil, nil
+}
+
+func buildDropColumn(q orm.Query) (string, []any, error) {
+	if q.Table == "" || len(q.Columns) == 0 {
+		return "", nil, fmt.Err("table and column required for drop column")
+	}
+	return fmt.Sprintf("ALTER TABLE %s DROP COLUMN %s", q.Table, q.Columns[0]), nil, nil
 }
 
 func sqliteType(t fmt.FieldType) string {
@@ -224,7 +253,11 @@ func buildConditions(conditions []orm.Condition) (string, []any, error) {
 
 	for i, c := range conditions {
 		var clause string
-		if c.Operator() == "IN" {
+		op := c.Operator()
+		switch {
+		case op == "IS NULL" || op == "IS NOT NULL":
+			clause = fmt.Sprintf("%s %s", c.Field(), op)
+		case op == "IN":
 			slice, ok := c.Value().([]any)
 			if !ok {
 				return "", nil, fmt.Errf("IN operator requires []any value, got %T", c.Value())
@@ -239,8 +272,8 @@ func buildConditions(conditions []orm.Condition) (string, []any, error) {
 			inVals := fmt.Convert(placeholders).Join(", ").String()
 			clause = fmt.Sprintf("%s IN (%s)", c.Field(), inVals)
 			args = append(args, slice...)
-		} else {
-			clause = fmt.Sprintf("%s %s ?", c.Field(), c.Operator())
+		default:
+			clause = fmt.Sprintf("%s %s ?", c.Field(), op)
 			args = append(args, c.Value())
 		}
 
