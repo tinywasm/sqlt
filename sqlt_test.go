@@ -141,6 +141,86 @@ func TestTranslateDropTable(t *testing.T) {
 	}
 }
 
+func TestTranslateAddColumn(t *testing.T) {
+	sql, _, err := sqlt.Translate(orm.Query{
+		Action: orm.ActionAddColumn,
+		Table:  "users",
+		Column: &fmt.Field{Name: "bio", Type: fmt.FieldText},
+	}, testModel{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "ALTER TABLE users ADD COLUMN bio TEXT"
+	if sql != want {
+		t.Errorf("got %q, want %q", sql, want)
+	}
+
+	sql, _, err = sqlt.Translate(orm.Query{
+		Action: orm.ActionAddColumn,
+		Table:  "users",
+		Column: &fmt.Field{Name: "score", Type: fmt.FieldInt},
+	}, testModel{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want = "ALTER TABLE users ADD COLUMN score INTEGER"
+	if sql != want {
+		t.Errorf("got %q, want %q", sql, want)
+	}
+}
+
+func TestTranslateRenameColumn(t *testing.T) {
+	sql, _, err := sqlt.Translate(orm.Query{
+		Action:  orm.ActionRenameColumn,
+		Table:   "users",
+		OldName: "age",
+		Column:  &fmt.Field{Name: "years"},
+	}, testModel{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "ALTER TABLE users RENAME COLUMN age TO years"
+	if sql != want {
+		t.Errorf("got %q, want %q", sql, want)
+	}
+}
+
+func TestTranslateDropColumn(t *testing.T) {
+	sql, _, err := sqlt.Translate(orm.Query{
+		Action:  orm.ActionDropColumn,
+		Table:   "users",
+		Columns: []string{"age"},
+	}, testModel{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "ALTER TABLE users DROP COLUMN age"
+	if sql != want {
+		t.Errorf("got %q, want %q", sql, want)
+	}
+}
+
+func TestTranslateNullConditions(t *testing.T) {
+	sql, args, err := sqlt.Translate(orm.Query{
+		Action:     orm.ActionReadAll,
+		Table:      "users",
+		Conditions: []orm.Condition{orm.IsNotNull("age")},
+	}, testModel{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "SELECT * FROM users WHERE age IS NOT NULL"
+	if sql != want {
+		t.Errorf("got %q, want %q", sql, want)
+	}
+	if len(args) != 0 {
+		t.Errorf("expected 0 args, got %d", len(args))
+	}
+
+	// IS NULL doesn't have a helper in current orm, but buildConditions should handle it
+	// if it somehow receives it (e.g. via direct construction if orm adds it or internal use).
+}
+
 func TestCompilerErrors(t *testing.T) {
 	_, _, err := sqlt.Translate(orm.Query{Action: 99}, nil)
 	if err == nil {
@@ -190,6 +270,31 @@ func TestCompilerErrors(t *testing.T) {
 	_, _, err = sqlt.Translate(orm.Query{Action: orm.ActionDelete}, nil)
 	if err == nil {
 		t.Fatal("expected error for delete without table")
+	}
+
+	_, _, err = sqlt.Translate(orm.Query{Action: orm.ActionAddColumn, Table: "t"}, nil)
+	if err == nil {
+		t.Fatal("expected error for add column without column")
+	}
+
+	_, _, err = sqlt.Translate(orm.Query{Action: orm.ActionAddColumn, Column: &fmt.Field{Name: "c"}}, nil)
+	if err == nil {
+		t.Fatal("expected error for add column without table")
+	}
+
+	_, _, err = sqlt.Translate(orm.Query{Action: orm.ActionRenameColumn, Table: "t", OldName: "o"}, nil)
+	if err == nil {
+		t.Fatal("expected error for rename column without column")
+	}
+
+	_, _, err = sqlt.Translate(orm.Query{Action: orm.ActionRenameColumn, Table: "t", Column: &fmt.Field{Name: "c"}}, nil)
+	if err == nil {
+		t.Fatal("expected error for rename column without old name")
+	}
+
+	_, _, err = sqlt.Translate(orm.Query{Action: orm.ActionDropColumn, Table: "t"}, nil)
+	if err == nil {
+		t.Fatal("expected error for drop column without columns")
 	}
 
 	_, _, err = sqlt.Translate(orm.Query{
