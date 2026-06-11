@@ -1,114 +1,154 @@
-# PLAN — Implement Introspection, Renames, and Safe Deletes (SQLite adapter)
+# PLAN — Schema-sync translation (SQLite compiler)
 
-> The `tinywasm/orm` dev schema-sync (`db.Sync`) now supports introspective checks, renames, and safe deletes.
-> This adapter must comply with the contract by implementing the `TableIntrospector` interface
-> and translating `ActionRenameColumn` and `ActionDropColumn` actions.
+> `tinywasm/orm`'s dev schema-sync drives the engine through agnostic `Action`s. **`tinywasm/sqlt` is
+> the SQLite compiler only** (`NewCompiler()` / `translateQuery` / `Translate`) — it has **no
+> executor and no connection**. The executor, the engine registry (`orm.Register("sqlite", …)`),
+> `orm.ErrNoRows` mapping, and `TableIntrospector` all live in **`tinywasm/sqlite`** (its own plan).
+>
+> This plan covers only what a pure compiler owns: translate the new DDL actions
+> (`ActionAddColumn`/`RenameColumn`/`DropColumn`) and handle `IS NULL`/`IS NOT NULL` conditions.
+>
+> **Self-contained, single-module plan** (`tinywasm/sqlt`). Prerequisite: `orm` published with the
+> three column actions + `Query.Column`/`OldName`/`Columns`. Bump the dep first.
 
 ---
 
 ## 1. Development Rules (constraints copied for execution context)
 
-- **Pure translator + Executor extension.**
-  - `translateQuery(q, m)` remains a pure query-to-SQL translator. It does **not** query the DB.
-  - The `TableIntrospector` method `TableColumns` is implemented on the SQLite `Executor` (using `PRAGMA table_info`).
-- **SQLite dialect.** This module owns SQLite-specific SQL. Reuse the existing `sqliteType()` map.
-- **SQLite constraints.**
-  - SQLite (3.35.0+) supports `ALTER TABLE ... RENAME COLUMN ...` and `ALTER TABLE ... DROP COLUMN ...`.
-  - We translate columns as plain `<name> <type>` without NOT NULL / UNIQUE / PK constraints on add.
-- **gotest.** Assert the generated SQL strings and mock/verify the introspector query returns correct columns.
+- **Pure translator.** `translateQuery(q, m)` maps an `orm.Query` → `(sql, args, error)`. It does
+  **not** execute or read the DB — so it **cannot** check column existence. Keep it pure.
+- **SQLite dialect.** Reuse the existing `sqliteType()` map.
+- **No `IF NOT EXISTS` on `ADD COLUMN`.** SQLite has no such clause. The plain statement **errors** if
+  the column exists; **idempotency is delegated to `db.Sync`'s additive log-and-continue** when no
+  introspector is present, or skipped entirely when `tinywasm/sqlite` provides `TableIntrospector`
+  (then `db.Sync` only adds genuinely-missing columns). This compiler emits the plain statement.
+- **Additive only, nullable.** Emit only `<name> <type>` on `ADD COLUMN`. No PK/UNIQUE/AUTOINCREMENT
+  (SQLite forbids them via `ALTER TABLE ADD COLUMN`).
+- **`DROP COLUMN` / `RENAME COLUMN`** are supported by modern SQLite (3.25+/3.35+). Emit them plainly;
+  the executor module documents the version floor.
+- **`gotest` (not `go test`).** `translateQuery` is pure; assert the SQL string.
+- **Documentation first.**
 
 ---
 
 ## 2. Problem
 
-The current SQLite adapter does not implement `TableIntrospector` nor translates `ActionRenameColumn` and `ActionDropColumn`, resulting in unsupported action errors.
+`translateQuery` ([translate.go:10](../translate.go#L10)) `default`-errors on `ActionAddColumn`,
+`ActionRenameColumn`, `ActionDropColumn` (`"unknown query action"`). And `buildConditions`
+([translate.go:243](../translate.go#L243)) always emits `field op ?` with a bind arg — for the
+safe-drop check's `IS NOT NULL` (no value) that produces the broken `col IS NOT NULL ?`. So
+`db.Sync`'s per-column steps and its reconcile check can't be compiled for SQLite.
 
 ---
 
 ## 3. Decision
 
-1. **Implement `TableIntrospector` on the SQLite Executor:**
-   ```go
-   func (e *SQLiteExecutor) TableColumns(table string) ([]string, error) {
-       // Query PRAGMA table_info(table_name)
-       rows, err := e.Query(fmt.Sprintf("PRAGMA table_info(%s)", table))
-       // Scan column names (index 1 of the returned fields)
-   }
-   ```
-2. **Translate `ActionRenameColumn`:**
-   ```sql
-   ALTER TABLE <q.Table> RENAME COLUMN <q.OldName> TO <q.Column.Name>
-   ```
-3. **Translate `ActionDropColumn`:**
-   ```sql
-   ALTER TABLE <q.Table> DROP COLUMN <q.Columns[0]>
-   ```
+### 3.1 Translate the column actions
 
----
+Add cases to `translateQuery`'s `switch`, each delegating to a small builder:
 
-## 4. Implementation Steps
-
-### Step 1 — Bump the orm dependency
-`go get github.com/tinywasm/orm@vX`
-
-### Step 2 — Implement `TableIntrospector`
-**File:** [sqlt.go](../sqlt.go) (or where the Executor type is defined)
-
-Add the method `TableColumns(table string) ([]string, error)` by executing `PRAGMA table_info(%s)` and reading column names.
-
-### Step 3 — Add the new translation cases
-**File:** [translate.go](../translate.go)
-
-Under `switch q.Action`:
 ```go
 case orm.ActionAddColumn:
     return buildAddColumn(q)
-
 case orm.ActionRenameColumn:
     return buildRenameColumn(q)
-
 case orm.ActionDropColumn:
     return buildDropColumn(q)
 ```
 
-Add helper functions:
 ```go
+func buildAddColumn(q orm.Query) (string, []any, error) {
+    if q.Column == nil || q.Table == "" {
+        return "", nil, fmt.Err("table and column required for add column")
+    }
+    return fmt.Sprintf("ALTER TABLE %s ADD COLUMN %s %s",
+        q.Table, q.Column.Name, sqliteType(q.Column.Type)), nil, nil
+}
+
 func buildRenameColumn(q orm.Query) (string, []any, error) {
-    if q.OldName == "" || q.Column == nil {
-        return "", nil, fmt.Err("old column name and target column metadata are required for rename")
+    if q.Column == nil || q.OldName == "" || q.Table == "" {
+        return "", nil, fmt.Err("table, old name and column required for rename")
     }
-    if q.Table == "" {
-        return "", nil, fmt.Err("table name is required for rename")
-    }
-    return fmt.Sprintf("ALTER TABLE %s RENAME COLUMN %s TO %s", q.Table, q.OldName, q.Column.Name), nil, nil
+    return fmt.Sprintf("ALTER TABLE %s RENAME COLUMN %s TO %s",
+        q.Table, q.OldName, q.Column.Name), nil, nil
 }
 
 func buildDropColumn(q orm.Query) (string, []any, error) {
-    if len(q.Columns) == 0 {
-        return "", nil, fmt.Err("column name is required for drop")
-    }
-    if q.Table == "" {
-        return "", nil, fmt.Err("table name is required for drop")
+    if q.Table == "" || len(q.Columns) == 0 {
+        return "", nil, fmt.Err("table and column required for drop column")
     }
     return fmt.Sprintf("ALTER TABLE %s DROP COLUMN %s", q.Table, q.Columns[0]), nil, nil
 }
 ```
 
+### 3.2 Null-operator conditions
+
+In `buildConditions` ([translate.go:217](../translate.go#L217)), special-case no-value operators
+before the bind-arg branch:
+
+```go
+op := c.Operator()
+switch {
+case op == "IS NULL" || op == "IS NOT NULL":
+    clause = fmt.Sprintf("%s %s", c.Field(), op) // no "?" , no arg
+case op == "IN":
+    // ...existing...
+default:
+    clause = fmt.Sprintf("%s %s ?", c.Field(), op)
+    args = append(args, c.Value())
+}
+```
+(Needed so the safe-drop `SELECT 1 FROM t WHERE col IS NOT NULL LIMIT 1` compiles.)
+
+---
+
+## 4. Implementation Steps
+
+### Step 1 — Bump orm
+`go get github.com/tinywasm/orm@vX` (the three column actions + `Query.Column`/`OldName`/`Columns`).
+
+### Step 2 — Column actions
+[translate.go](../translate.go): add the three `case`s + `buildAddColumn`/`buildRenameColumn`/
+`buildDropColumn` (§3.1).
+
+### Step 3 — Null operators
+[translate.go](../translate.go): special-case `IS NULL`/`IS NOT NULL` in `buildConditions` (§3.2).
+
+### Step 4 — Documentation
+Note that `sqlt` is the SQLite **compiler**; registration + executor concerns live in
+`tinywasm/sqlite`.
+
 ---
 
 ## 5. Edge Cases
 
-- Older SQLite versions lacking `DROP COLUMN` support will fail with syntax errors. We target standard modern SQLite (3.35.0+).
+- **`q.Column == nil` / empty table / empty `Columns`** → explicit error per builder.
+- **Column already exists** (`ADD COLUMN`) → plain statement errors; absorbed by `db.Sync`
+  (additive log-and-continue) or avoided entirely when the executor exposes `TableIntrospector`.
+- **Column marked NOT NULL/PK/unique** → emitted plain `<name> <type>` (additive + SQLite rules).
+- **`IS NOT NULL` condition** → no placeholder/arg (§3.2).
 
 ---
 
 ## 6. Test Strategy
 
-`gotest` in `tinywasm/sqlt/tests/`.
+`gotest` via the exported `Translate(q, m)` hook ([sqlt.go](../sqlt.go)).
 
 | # | Case | Assert |
 |---|------|--------|
-| T1 | `ActionAddColumn` | `ALTER TABLE x ADD COLUMN c TEXT` |
-| T2 | `ActionRenameColumn` | `ALTER TABLE x RENAME COLUMN old TO new` |
-| T3 | `ActionDropColumn` | `ALTER TABLE x DROP COLUMN c` |
-| T4 | Introspector check | `TableColumns("users")` parses `PRAGMA table_info` columns correctly |
+| T1 | `ActionAddColumn`, `FieldText` | `ALTER TABLE x ADD COLUMN c TEXT` |
+| T2 | `ActionAddColumn`, `FieldInt` | `... c INTEGER` (via `sqliteType`) |
+| T3 | `ActionAddColumn`, col marked NOT NULL/PK | plain `<name> <type>`, no constraints |
+| T4 | `ActionRenameColumn` | `ALTER TABLE x RENAME COLUMN old TO new` |
+| T5 | `ActionDropColumn` | `ALTER TABLE x DROP COLUMN c` |
+| T6 | guards: nil column / empty old name / empty table | error returned |
+| T7 | `buildConditions` with `IsNotNull(col)` | `... col IS NOT NULL` (no `?`, no arg) |
+
+---
+
+## 7. Out of Scope
+
+- Engine registration (`orm.Register("sqlite", …)`), `orm.ErrNoRows` mapping, and `TableIntrospector`
+  — owned by the **executor** module `tinywasm/sqlite` (its plan).
+- `db.Sync` / `db.SyncSchema` and its log-and-continue / reconcile — orm core plan.
+- Destructive type-change / table rebuild — deferred.
