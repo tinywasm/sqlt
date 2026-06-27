@@ -1,0 +1,100 @@
+package sqlt_test
+
+import (
+	"strings"
+	"testing"
+
+	"github.com/tinywasm/fmt"
+	"github.com/tinywasm/orm"
+	"github.com/tinywasm/sqlt"
+)
+
+func TestVarchar_SQLite(t *testing.T) {
+	m := &testModelVarchar{}
+	sql, _, err := sqlt.Translate(orm.Query{
+		Action: orm.ActionCreateTable,
+		Table:  "users",
+	}, m)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Assert: buildCreateTable output contains "username VARCHAR(50)"
+	if !strings.Contains(sql, "username VARCHAR(50)") {
+		t.Errorf("expected VARCHAR(50) for username, got %q", sql)
+	}
+	// Assert: field without maximum: "email TEXT"
+	if !strings.Contains(sql, "email TEXT") {
+		t.Errorf("expected TEXT for email, got %q", sql)
+	}
+}
+
+type testModelVarchar struct{}
+
+func (m *testModelVarchar) ModelName() string { return "users" }
+func (m *testModelVarchar) Schema() []fmt.Field {
+	return []fmt.Field{
+		{Name: "username", Type: fmt.FieldText, Permitted: fmt.Permitted{Maximum: 50}},
+		{Name: "email", Type: fmt.FieldText},
+	}
+}
+func (m *testModelVarchar) Pointers() []any { return nil }
+
+func TestOnDelete_SQLite(t *testing.T) {
+	tests := []struct {
+		name     string
+		onDelete string
+		want     string
+	}{
+		{"default", "", "ON DELETE CASCADE"},
+		{"restrict", "restrict", "ON DELETE RESTRICT"},
+		{"set_null", "set_null", "ON DELETE SET NULL"},
+		{"no_action", "no_action", "ON DELETE NO ACTION"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &testModelFK{onDelete: tt.onDelete}
+			sql, _, err := sqlt.Translate(orm.Query{
+				Action: orm.ActionCreateTable,
+				Table:  "sessions",
+			}, m)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !strings.Contains(sql, tt.want) {
+				t.Errorf("expected %q in sql, got %q", tt.want, sql)
+			}
+		})
+	}
+}
+
+type testModelFK struct {
+	onDelete string
+}
+
+func (m *testModelFK) ModelName() string { return "sessions" }
+func (m *testModelFK) Schema() []fmt.Field {
+	return []fmt.Field{
+		{Name: "id", Type: fmt.FieldText, DB: &fmt.FieldDB{PK: true}},
+		{Name: "user_id", Type: fmt.FieldInt},
+	}
+}
+func (m *testModelFK) SchemaExt() []orm.FieldExt {
+	return []orm.FieldExt{
+		{
+			Field:    fmt.Field{Name: "user_id", Type: fmt.FieldInt},
+			Ref:      "users",
+			OnDelete: m.onDelete,
+		},
+	}
+}
+func (m *testModelFK) Pointers() []any { return nil }
+
+type testModelParent struct{}
+
+func (m *testModelParent) ModelName() string { return "users" }
+func (m *testModelParent) Schema() []fmt.Field {
+	return []fmt.Field{{Name: "id", Type: fmt.FieldInt, DB: &fmt.FieldDB{PK: true}}}
+}
+func (m *testModelParent) Pointers() []any { return nil }
