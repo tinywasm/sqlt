@@ -12,16 +12,13 @@ import (
 
 func TestAutoIndex_SQLite(t *testing.T) {
 	c := sqlt.NewCompiler()
-	m := &testModelFK{}     // from translate_test.go
-	p := &testModelParent{} // from translate_test.go
-	got, err := c.(interface {
-		ExportDDL([]fmt.Model) (string, error)
-	}).ExportDDL([]fmt.Model{m, p})
+	m := &testModelFK{}
+	p := &testModelParent{}
+	got, err := c.ExportDDL([]fmt.Model{m, p})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Assert: output contains "CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)"
 	want := "CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)"
 	if !strings.Contains(got, want) {
 		t.Errorf("expected index SQL, got %q", got)
@@ -30,11 +27,8 @@ func TestAutoIndex_SQLite(t *testing.T) {
 
 func TestExportDDL_EmptyInput(t *testing.T) {
 	c := sqlt.NewCompiler()
-	exporter := c.(interface {
-		ExportDDL([]fmt.Model) (string, error)
-	})
 
-	got, err := exporter.ExportDDL(nil)
+	got, err := c.ExportDDL(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,7 +37,7 @@ func TestExportDDL_EmptyInput(t *testing.T) {
 		t.Errorf("got %q, want %q", got, want)
 	}
 
-	got, err = exporter.ExportDDL([]fmt.Model{})
+	got, err = c.ExportDDL([]fmt.Model{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,13 +78,10 @@ func TestExportDDL_FullSchema(t *testing.T) {
 		fields: []fmt.Field{
 			{Name: "id", Type: fmt.FieldText, DB: &fmt.FieldDB{PK: true}},
 			{Name: "user_id", Type: fmt.FieldInt},
-			{Name: "metadata", Type: fmt.FieldText}, // RawJSON -> FieldRaw -> FieldText (in stub)
+			{Name: "metadata", Type: fmt.FieldText},
 		},
 		ext: []orm.FieldExt{
-			{
-				Field: fmt.Field{Name: "user_id", Type: fmt.FieldInt},
-				Ref:   "users",
-			},
+			{Field: fmt.Field{Name: "user_id", Type: fmt.FieldInt}, Ref: "users"},
 		},
 	}
 
@@ -101,36 +92,23 @@ func TestExportDDL_FullSchema(t *testing.T) {
 			{Name: "role_id", Type: fmt.FieldInt, DB: &fmt.FieldDB{PK: true}},
 		},
 		ext: []orm.FieldExt{
-			{
-				Field: fmt.Field{Name: "user_id", Type: fmt.FieldInt},
-				Ref:   "users",
-			},
-			{
-				Field: fmt.Field{Name: "role_id", Type: fmt.FieldInt},
-				Ref:   "roles",
-			},
+			{Field: fmt.Field{Name: "user_id", Type: fmt.FieldInt}, Ref: "users"},
+			{Field: fmt.Field{Name: "role_id", Type: fmt.FieldInt}, Ref: "roles"},
 		},
 	}
 
 	c := sqlt.NewCompiler()
-	exporter := c.(interface {
-		ExportDDL([]fmt.Model) (string, error)
-	})
-
-	got, err := exporter.ExportDDL([]fmt.Model{users, roles, sessions, userRoles})
+	got, err := c.ExportDDL([]fmt.Model{users, roles, sessions, userRoles})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// The golden file has a header and trailing newlines. ExportDDL has its own header.
-	// We want to compare the SQL content, ignoring the fixture header in golden.
-	sqlPart := got
 	if i := strings.Index(golden, "CREATE TABLE"); i != -1 {
 		golden = "-- dialect: sqlite\n\n" + golden[i:]
 	}
 
-	if strings.TrimSpace(sqlPart) != strings.TrimSpace(golden) {
-		t.Errorf("DDL export does not match golden file.\nGOT:\n%s\n\nWANT:\n%s", sqlPart, golden)
+	if strings.TrimSpace(got) != strings.TrimSpace(golden) {
+		t.Errorf("DDL export does not match golden file.\nGOT:\n%s\n\nWANT:\n%s", got, golden)
 	}
 }
 
@@ -140,7 +118,7 @@ type modelFull struct {
 	ext    []orm.FieldExt
 }
 
-func (m *modelFull) ModelName() string { return m.name }
-func (m *modelFull) Schema() []fmt.Field { return m.fields }
+func (m *modelFull) ModelName() string         { return m.name }
+func (m *modelFull) Schema() []fmt.Field       { return m.fields }
 func (m *modelFull) SchemaExt() []orm.FieldExt { return m.ext }
-func (m *modelFull) Pointers() []any { return nil }
+func (m *modelFull) Pointers() []any           { return nil }

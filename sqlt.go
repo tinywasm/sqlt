@@ -5,8 +5,8 @@ import (
 	"github.com/tinywasm/orm"
 )
 
-// NewCompiler returns an orm.Compiler that generates SQLite-dialect SQL.
-func NewCompiler() orm.Compiler {
+// NewCompiler returns a *compiler that implements orm.Compiler and ddl.Exporter.
+func NewCompiler() *compiler {
 	return &compiler{}
 }
 
