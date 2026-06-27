@@ -7,7 +7,7 @@ import (
 
 // NewCompiler returns an orm.Compiler that generates SQLite-dialect SQL.
 func NewCompiler() orm.Compiler {
-	return compiler{}
+	return &compiler{}
 }
 
 // Translate converts an orm.Query into a SQLite SQL string and positional args.

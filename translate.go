@@ -56,7 +56,7 @@ func buildCreateTable(q orm.Query, m fmt.Model) (string, []any, error) {
 
 	var cols []string
 	for _, f := range fields {
-		col := fmt.Sprintf("%s %s", f.Name, sqliteType(f.Type))
+		col := fmt.Sprintf("%s %s", f.Name, sqliteColumnType(f))
 		if f.IsPK() {
 			if compositePK {
 				// Composite PK: columns must be NOT NULL; constraint emitted as table-level below.
@@ -89,7 +89,11 @@ func buildCreateTable(q orm.Query, m fmt.Model) (string, []any, error) {
 				if refCol == "" {
 					refCol = "id"
 				}
-				cols = append(cols, fmt.Sprintf("CONSTRAINT fk_%s_%s FOREIGN KEY (%s) REFERENCES %s(%s)", q.Table, f.Name, f.Name, f.Ref, refCol))
+				fkSQL := fmt.Sprintf(
+					"CONSTRAINT fk_%s_%s FOREIGN KEY (%s) REFERENCES %s(%s)",
+					q.Table, f.Name, f.Name, f.Ref, refCol)
+				fkSQL += " ON DELETE " + onDeleteSQL(f.OnDelete)
+				cols = append(cols, fkSQL)
 			}
 		}
 	}
@@ -130,6 +134,13 @@ func buildDropColumn(q orm.Query) (string, []any, error) {
 	return fmt.Sprintf("ALTER TABLE %s DROP COLUMN %s", q.Table, q.Columns[0]), nil, nil
 }
 
+func sqliteColumnType(f fmt.Field) string {
+	if f.Type == fmt.FieldText && f.Maximum > 0 {
+		return fmt.Sprintf("VARCHAR(%d)", f.Maximum)
+	}
+	return sqliteType(f.Type)
+}
+
 func sqliteType(t fmt.FieldType) string {
 	switch t {
 	case fmt.FieldInt:
@@ -142,6 +153,19 @@ func sqliteType(t fmt.FieldType) string {
 		return "BLOB"
 	default:
 		return "TEXT"
+	}
+}
+
+func onDeleteSQL(action string) string {
+	switch action {
+	case "restrict":
+		return "RESTRICT"
+	case "set_null":
+		return "SET NULL"
+	case "no_action":
+		return "NO ACTION"
+	default:
+		return "CASCADE" // default for all ref=, including OnDelete == ""
 	}
 }
 
@@ -266,8 +290,8 @@ func buildConditions(conditions []orm.Condition) (string, []any, error) {
 				return "", nil, fmt.Err("IN operator slice cannot be empty")
 			}
 			placeholders := make([]string, len(slice))
-			for j := range placeholders {
-				placeholders[j] = "?"
+			for i := range placeholders {
+				placeholders[i] = "?"
 			}
 			inVals := fmt.Convert(placeholders).Join(", ").String()
 			clause = fmt.Sprintf("%s IN (%s)", c.Field(), inVals)
