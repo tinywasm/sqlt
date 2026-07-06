@@ -1,10 +1,11 @@
 package sqlt_test
 
+import "github.com/tinywasm/model"
+
 import (
 	"strings"
 	"testing"
 
-	"github.com/tinywasm/fmt"
 	"github.com/tinywasm/orm"
 	"github.com/tinywasm/sqlt"
 )
@@ -32,10 +33,10 @@ func TestVarchar_SQLite(t *testing.T) {
 type testModelVarchar struct{}
 
 func (m *testModelVarchar) ModelName() string { return "users" }
-func (m *testModelVarchar) Schema() []fmt.Field {
-	return []fmt.Field{
-		{Name: "username", Type: fmt.FieldText, Permitted: fmt.Permitted{Maximum: 50}},
-		{Name: "email", Type: fmt.FieldText},
+func (m *testModelVarchar) Schema() []model.Field {
+	return []model.Field{
+		{Name: "username", Type: model.FieldText, Permitted: model.Permitted{Maximum: 50}},
+		{Name: "email", Type: model.FieldText},
 	}
 }
 func (m *testModelVarchar) Pointers() []any { return nil }
@@ -74,16 +75,16 @@ type testModelFK struct {
 }
 
 func (m *testModelFK) ModelName() string { return "sessions" }
-func (m *testModelFK) Schema() []fmt.Field {
-	return []fmt.Field{
-		{Name: "id", Type: fmt.FieldText, DB: &fmt.FieldDB{PK: true}},
-		{Name: "user_id", Type: fmt.FieldInt},
+func (m *testModelFK) Schema() []model.Field {
+	return []model.Field{
+		{Name: "id", Type: model.FieldText, DB: &model.FieldDB{PK: true}},
+		{Name: "user_id", Type: model.FieldInt},
 	}
 }
 func (m *testModelFK) SchemaExt() []orm.FieldExt {
 	return []orm.FieldExt{
 		{
-			Field:    fmt.Field{Name: "user_id", Type: fmt.FieldInt},
+			Field:    model.Field{Name: "user_id", Type: model.FieldInt},
 			Ref:      "users",
 			OnDelete: m.onDelete,
 		},
@@ -94,7 +95,7 @@ func (m *testModelFK) Pointers() []any { return nil }
 type testModelParent struct{}
 
 func (m *testModelParent) ModelName() string { return "users" }
-func (m *testModelParent) Schema() []fmt.Field {
-	return []fmt.Field{{Name: "id", Type: fmt.FieldInt, DB: &fmt.FieldDB{PK: true}}}
+func (m *testModelParent) Schema() []model.Field {
+	return []model.Field{{Name: "id", Type: model.FieldInt, DB: &model.FieldDB{PK: true}}}
 }
 func (m *testModelParent) Pointers() []any { return nil }

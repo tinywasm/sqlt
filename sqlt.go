@@ -1,7 +1,7 @@
 package sqlt
 
 import (
-	"github.com/tinywasm/fmt"
+	"github.com/tinywasm/model"
 	"github.com/tinywasm/orm"
 )
 
@@ -11,6 +11,6 @@ func NewCompiler() *compiler {
 }
 
 // Translate converts an orm.Query into a SQLite SQL string and positional args.
-func Translate(q orm.Query, m fmt.Model) (string, []any, error) {
+func Translate(q orm.Query, m model.Model) (string, []any, error) {
 	return translateQuery(q, m)
 }

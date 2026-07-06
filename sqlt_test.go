@@ -1,9 +1,10 @@
 package sqlt_test
 
+import "github.com/tinywasm/model"
+
 import (
 	"testing"
 
-	"github.com/tinywasm/fmt"
 	"github.com/tinywasm/orm"
 	"github.com/tinywasm/sqlt"
 )
@@ -11,11 +12,11 @@ import (
 type testModel struct{}
 
 func (m testModel) ModelName() string { return "users" }
-func (m testModel) Schema() []fmt.Field {
-	return []fmt.Field{
-		{Name: "id", Type: fmt.FieldInt, DB: &fmt.FieldDB{PK: true, AutoInc: true}},
-		{Name: "name", Type: fmt.FieldText, NotNull: true},
-		{Name: "age", Type: fmt.FieldInt},
+func (m testModel) Schema() []model.Field {
+	return []model.Field{
+		{Name: "id", Type: model.FieldInt, DB: &model.FieldDB{PK: true, AutoInc: true}},
+		{Name: "name", Type: model.FieldText, NotNull: true},
+		{Name: "age", Type: model.FieldInt},
 	}
 }
 func (m testModel) Pointers() []any { return nil }
@@ -145,7 +146,7 @@ func TestTranslateAddColumn(t *testing.T) {
 	sql, _, err := sqlt.Translate(orm.Query{
 		Action: orm.ActionAddColumn,
 		Table:  "users",
-		Column: &fmt.Field{Name: "bio", Type: fmt.FieldText},
+		Column: &model.Field{Name: "bio", Type: model.FieldText},
 	}, testModel{})
 	if err != nil {
 		t.Fatal(err)
@@ -158,7 +159,7 @@ func TestTranslateAddColumn(t *testing.T) {
 	sql, _, err = sqlt.Translate(orm.Query{
 		Action: orm.ActionAddColumn,
 		Table:  "users",
-		Column: &fmt.Field{Name: "score", Type: fmt.FieldInt},
+		Column: &model.Field{Name: "score", Type: model.FieldInt},
 	}, testModel{})
 	if err != nil {
 		t.Fatal(err)
@@ -174,7 +175,7 @@ func TestTranslateRenameColumn(t *testing.T) {
 		Action:  orm.ActionRenameColumn,
 		Table:   "users",
 		OldName: "age",
-		Column:  &fmt.Field{Name: "years"},
+		Column:  &model.Field{Name: "years"},
 	}, testModel{})
 	if err != nil {
 		t.Fatal(err)
@@ -277,7 +278,7 @@ func TestCompilerErrors(t *testing.T) {
 		t.Fatal("expected error for add column without column")
 	}
 
-	_, _, err = sqlt.Translate(orm.Query{Action: orm.ActionAddColumn, Column: &fmt.Field{Name: "c"}}, nil)
+	_, _, err = sqlt.Translate(orm.Query{Action: orm.ActionAddColumn, Column: &model.Field{Name: "c"}}, nil)
 	if err == nil {
 		t.Fatal("expected error for add column without table")
 	}
@@ -287,7 +288,7 @@ func TestCompilerErrors(t *testing.T) {
 		t.Fatal("expected error for rename column without column")
 	}
 
-	_, _, err = sqlt.Translate(orm.Query{Action: orm.ActionRenameColumn, Table: "t", Column: &fmt.Field{Name: "c"}}, nil)
+	_, _, err = sqlt.Translate(orm.Query{Action: orm.ActionRenameColumn, Table: "t", Column: &model.Field{Name: "c"}}, nil)
 	if err == nil {
 		t.Fatal("expected error for rename column without old name")
 	}

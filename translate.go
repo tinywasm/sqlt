@@ -1,5 +1,7 @@
 package sqlt
 
+import "github.com/tinywasm/model"
+
 import (
 	"github.com/tinywasm/fmt"
 
@@ -7,7 +9,7 @@ import (
 )
 
 // translateQuery converts an orm.Query into a SQLite SQL string and arguments.
-func translateQuery(q orm.Query, m fmt.Model) (string, []any, error) {
+func translateQuery(q orm.Query, m model.Model) (string, []any, error) {
 	switch q.Action {
 	case orm.ActionCreate:
 		return buildInsert(q)
@@ -32,7 +34,7 @@ func translateQuery(q orm.Query, m fmt.Model) (string, []any, error) {
 	}
 }
 
-func buildCreateTable(q orm.Query, m fmt.Model) (string, []any, error) {
+func buildCreateTable(q orm.Query, m model.Model) (string, []any, error) {
 	if m == nil {
 		return "", nil, fmt.Err("model is required for create table")
 	}
@@ -64,7 +66,7 @@ func buildCreateTable(q orm.Query, m fmt.Model) (string, []any, error) {
 			} else {
 				col += " PRIMARY KEY"
 				// AUTOINCREMENT is only allowed on INTEGER PRIMARY KEY in SQLite
-				if f.IsAutoInc() && f.Type == fmt.FieldInt {
+				if f.IsAutoInc() && f.Type == model.FieldInt {
 					col += " AUTOINCREMENT"
 				}
 			}
@@ -134,22 +136,22 @@ func buildDropColumn(q orm.Query) (string, []any, error) {
 	return fmt.Sprintf("ALTER TABLE %s DROP COLUMN %s", q.Table, q.Columns[0]), nil, nil
 }
 
-func sqliteColumnType(f fmt.Field) string {
-	if f.Type == fmt.FieldText && f.Maximum > 0 {
+func sqliteColumnType(f model.Field) string {
+	if f.Type == model.FieldText && f.Maximum > 0 {
 		return fmt.Sprintf("VARCHAR(%d)", f.Maximum)
 	}
 	return sqliteType(f.Type)
 }
 
-func sqliteType(t fmt.FieldType) string {
+func sqliteType(t model.FieldType) string {
 	switch t {
-	case fmt.FieldInt:
+	case model.FieldInt:
 		return "INTEGER"
-	case fmt.FieldFloat:
+	case model.FieldFloat:
 		return "REAL"
-	case fmt.FieldBool:
+	case model.FieldBool:
 		return "INTEGER" // 0 or 1
-	case fmt.FieldBlob:
+	case model.FieldBlob:
 		return "BLOB"
 	default:
 		return "TEXT"

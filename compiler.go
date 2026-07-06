@@ -1,6 +1,7 @@
 package sqlt
 
 import (
+	"github.com/tinywasm/model"
 	"github.com/tinywasm/fmt"
 	"github.com/tinywasm/orm"
 	"github.com/tinywasm/orm/ddl"
@@ -10,7 +11,7 @@ import (
 type compiler struct{}
 
 // Compile converts an orm.Query into an engine Plan.
-func (c compiler) Compile(q orm.Query, m fmt.Model) (orm.Plan, error) {
+func (c compiler) Compile(q orm.Query, m model.Model) (orm.Plan, error) {
 	sqlStr, args, err := translateQuery(q, m)
 	if err != nil {
 		return orm.Plan{}, err
@@ -23,7 +24,7 @@ func (c compiler) Compile(q orm.Query, m fmt.Model) (orm.Plan, error) {
 	}, nil
 }
 
-func (c *compiler) ExportDDL(models []fmt.Model) (string, error) {
+func (c *compiler) ExportDDL(models []model.Model) (string, error) {
 	sorted, err := ddl.TopologicalSort(models)
 	if err != nil {
 		return "", err

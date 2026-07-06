@@ -1,11 +1,12 @@
 package sqlt_test
 
+import "github.com/tinywasm/model"
+
 import (
 	"os"
 	"strings"
 	"testing"
 
-	"github.com/tinywasm/fmt"
 	"github.com/tinywasm/orm"
 	"github.com/tinywasm/sqlt"
 )
@@ -14,7 +15,7 @@ func TestAutoIndex_SQLite(t *testing.T) {
 	c := sqlt.NewCompiler()
 	m := &testModelFK{}
 	p := &testModelParent{}
-	got, err := c.ExportDDL([]fmt.Model{m, p})
+	got, err := c.ExportDDL([]model.Model{m, p})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,7 +38,7 @@ func TestExportDDL_EmptyInput(t *testing.T) {
 		t.Errorf("got %q, want %q", got, want)
 	}
 
-	got, err = c.ExportDDL([]fmt.Model{})
+	got, err = c.ExportDDL([]model.Model{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,50 +56,50 @@ func TestExportDDL_FullSchema(t *testing.T) {
 
 	users := &modelFull{
 		name: "users",
-		fields: []fmt.Field{
-			{Name: "id", Type: fmt.FieldInt, DB: &fmt.FieldDB{PK: true, AutoInc: true}},
-			{Name: "username", Type: fmt.FieldText, NotNull: true, DB: &fmt.FieldDB{Unique: true}, Permitted: fmt.Permitted{Maximum: 50}},
-			{Name: "email", Type: fmt.FieldText, NotNull: true, DB: &fmt.FieldDB{Unique: true}},
-			{Name: "score", Type: fmt.FieldFloat},
-			{Name: "active", Type: fmt.FieldBool},
-			{Name: "avatar", Type: fmt.FieldBlob},
+		fields: []model.Field{
+			{Name: "id", Type: model.FieldInt, DB: &model.FieldDB{PK: true, AutoInc: true}},
+			{Name: "username", Type: model.FieldText, NotNull: true, DB: &model.FieldDB{Unique: true}, Permitted: model.Permitted{Maximum: 50}},
+			{Name: "email", Type: model.FieldText, NotNull: true, DB: &model.FieldDB{Unique: true}},
+			{Name: "score", Type: model.FieldFloat},
+			{Name: "active", Type: model.FieldBool},
+			{Name: "avatar", Type: model.FieldBlob},
 		},
 	}
 
 	roles := &modelFull{
 		name: "roles",
-		fields: []fmt.Field{
-			{Name: "id", Type: fmt.FieldInt, DB: &fmt.FieldDB{PK: true, AutoInc: true}},
-			{Name: "name", Type: fmt.FieldText, NotNull: true, DB: &fmt.FieldDB{Unique: true}, Permitted: fmt.Permitted{Maximum: 100}},
+		fields: []model.Field{
+			{Name: "id", Type: model.FieldInt, DB: &model.FieldDB{PK: true, AutoInc: true}},
+			{Name: "name", Type: model.FieldText, NotNull: true, DB: &model.FieldDB{Unique: true}, Permitted: model.Permitted{Maximum: 100}},
 		},
 	}
 
 	sessions := &modelFull{
 		name: "sessions",
-		fields: []fmt.Field{
-			{Name: "id", Type: fmt.FieldText, DB: &fmt.FieldDB{PK: true}},
-			{Name: "user_id", Type: fmt.FieldInt},
-			{Name: "metadata", Type: fmt.FieldText},
+		fields: []model.Field{
+			{Name: "id", Type: model.FieldText, DB: &model.FieldDB{PK: true}},
+			{Name: "user_id", Type: model.FieldInt},
+			{Name: "metadata", Type: model.FieldText},
 		},
 		ext: []orm.FieldExt{
-			{Field: fmt.Field{Name: "user_id", Type: fmt.FieldInt}, Ref: "users"},
+			{Field: model.Field{Name: "user_id", Type: model.FieldInt}, Ref: "users"},
 		},
 	}
 
 	userRoles := &modelFull{
 		name: "user_roles",
-		fields: []fmt.Field{
-			{Name: "user_id", Type: fmt.FieldInt, DB: &fmt.FieldDB{PK: true}},
-			{Name: "role_id", Type: fmt.FieldInt, DB: &fmt.FieldDB{PK: true}},
+		fields: []model.Field{
+			{Name: "user_id", Type: model.FieldInt, DB: &model.FieldDB{PK: true}},
+			{Name: "role_id", Type: model.FieldInt, DB: &model.FieldDB{PK: true}},
 		},
 		ext: []orm.FieldExt{
-			{Field: fmt.Field{Name: "user_id", Type: fmt.FieldInt}, Ref: "users"},
-			{Field: fmt.Field{Name: "role_id", Type: fmt.FieldInt}, Ref: "roles"},
+			{Field: model.Field{Name: "user_id", Type: model.FieldInt}, Ref: "users"},
+			{Field: model.Field{Name: "role_id", Type: model.FieldInt}, Ref: "roles"},
 		},
 	}
 
 	c := sqlt.NewCompiler()
-	got, err := c.ExportDDL([]fmt.Model{users, roles, sessions, userRoles})
+	got, err := c.ExportDDL([]model.Model{users, roles, sessions, userRoles})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -114,11 +115,11 @@ func TestExportDDL_FullSchema(t *testing.T) {
 
 type modelFull struct {
 	name   string
-	fields []fmt.Field
+	fields []model.Field
 	ext    []orm.FieldExt
 }
 
 func (m *modelFull) ModelName() string         { return m.name }
-func (m *modelFull) Schema() []fmt.Field       { return m.fields }
+func (m *modelFull) Schema() []model.Field       { return m.fields }
 func (m *modelFull) SchemaExt() []orm.FieldExt { return m.ext }
 func (m *modelFull) Pointers() []any           { return nil }
