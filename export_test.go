@@ -1,16 +1,12 @@
 package sqlt_test
 
 import (
-	"github.com/tinywasm/ddlc"
-	"github.com/tinywasm/model"
-)
-
-import (
 	"os"
-	"strings"
 	"testing"
 
-	"github.com/tinywasm/orm"
+	"github.com/tinywasm/ddlc"
+	"github.com/tinywasm/fmt"
+	"github.com/tinywasm/model"
 	"github.com/tinywasm/sqlt"
 )
 
@@ -24,7 +20,7 @@ func TestAutoIndex_SQLite(t *testing.T) {
 	}
 
 	want := "CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)"
-	if !strings.Contains(got, want) {
+	if !fmt.Contains(got, want) {
 		t.Errorf("expected index SQL, got %q", got)
 	}
 }
@@ -107,11 +103,11 @@ func TestExportDDL_FullSchema(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if i := strings.Index(golden, "CREATE TABLE"); i != -1 {
+	if i := fmt.Index(golden, "CREATE TABLE"); i != -1 {
 		golden = "-- dialect: sqlite\n\n" + golden[i:]
 	}
 
-	if strings.TrimSpace(got) != strings.TrimSpace(golden) {
+	if fmt.TrimSpace(got) != fmt.TrimSpace(golden) {
 		t.Errorf("DDL export does not match golden file.\nGOT:\n%s\n\nWANT:\n%s", got, golden)
 	}
 }
@@ -122,7 +118,7 @@ type modelFull struct {
 	ext    []ddlc.FieldExt
 }
 
-func (m *modelFull) ModelName() string         { return m.name }
-func (m *modelFull) Schema() []model.Field       { return m.fields }
+func (m *modelFull) ModelName() string          { return m.name }
+func (m *modelFull) Schema() []model.Field      { return m.fields }
 func (m *modelFull) SchemaExt() []ddlc.FieldExt { return m.ext }
-func (m *modelFull) Pointers() []any           { return nil }
+func (m *modelFull) Pointers() []any            { return nil }

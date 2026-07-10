@@ -2,12 +2,8 @@ package sqlt
 
 import (
 	"github.com/tinywasm/ddlc"
-	"github.com/tinywasm/model"
-)
-
-import (
 	"github.com/tinywasm/fmt"
-
+	"github.com/tinywasm/model"
 	"github.com/tinywasm/orm"
 )
 

@@ -1,13 +1,9 @@
 package sqlt_test
 
 import (
-	"github.com/tinywasm/ddlc"
-	"github.com/tinywasm/model"
-)
-
-import (
 	"testing"
 
+	"github.com/tinywasm/model"
 	"github.com/tinywasm/orm"
 	"github.com/tinywasm/sqlt"
 )

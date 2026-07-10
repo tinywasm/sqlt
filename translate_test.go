@@ -1,14 +1,11 @@
 package sqlt_test
 
 import (
-	"github.com/tinywasm/ddlc"
-	"github.com/tinywasm/model"
-)
-
-import (
-	"strings"
 	"testing"
 
+	"github.com/tinywasm/ddlc"
+	"github.com/tinywasm/fmt"
+	"github.com/tinywasm/model"
 	"github.com/tinywasm/orm"
 	"github.com/tinywasm/sqlt"
 )
@@ -24,11 +21,11 @@ func TestVarchar_SQLite(t *testing.T) {
 	}
 
 	// Assert: buildCreateTable output contains "username VARCHAR(50)"
-	if !strings.Contains(sql, "username VARCHAR(50)") {
+	if !fmt.Contains(sql, "username VARCHAR(50)") {
 		t.Errorf("expected VARCHAR(50) for username, got %q", sql)
 	}
 	// Assert: field without maximum: "email TEXT"
-	if !strings.Contains(sql, "email TEXT") {
+	if !fmt.Contains(sql, "email TEXT") {
 		t.Errorf("expected TEXT for email, got %q", sql)
 	}
 }
@@ -66,7 +63,7 @@ func TestOnDelete_SQLite(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if !strings.Contains(sql, tt.want) {
+			if !fmt.Contains(sql, tt.want) {
 				t.Errorf("expected %q in sql, got %q", tt.want, sql)
 			}
 		})
