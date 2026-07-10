@@ -1,10 +1,9 @@
 package sqlt_test
 
-import "github.com/tinywasm/model"
-
 import (
 	"testing"
 
+	"github.com/tinywasm/model"
 	"github.com/tinywasm/orm"
 	"github.com/tinywasm/sqlt"
 )
@@ -14,9 +13,9 @@ type testModel struct{}
 func (m testModel) ModelName() string { return "users" }
 func (m testModel) Schema() []model.Field {
 	return []model.Field{
-		{Name: "id", Type: model.FieldInt, DB: &model.FieldDB{PK: true, AutoInc: true}},
-		{Name: "name", Type: model.FieldText, NotNull: true},
-		{Name: "age", Type: model.FieldInt},
+		{Name: "id", Type: model.Int(), DB: &model.FieldDB{PK: true, AutoInc: true}},
+		{Name: "name", Type: model.Text(), NotNull: true},
+		{Name: "age", Type: model.Int()},
 	}
 }
 func (m testModel) Pointers() []any { return nil }
@@ -146,7 +145,7 @@ func TestTranslateAddColumn(t *testing.T) {
 	sql, _, err := sqlt.Translate(orm.Query{
 		Action: orm.ActionAddColumn,
 		Table:  "users",
-		Column: &model.Field{Name: "bio", Type: model.FieldText},
+		Column: &model.Field{Name: "bio", Type: model.Text()},
 	}, testModel{})
 	if err != nil {
 		t.Fatal(err)
@@ -159,7 +158,7 @@ func TestTranslateAddColumn(t *testing.T) {
 	sql, _, err = sqlt.Translate(orm.Query{
 		Action: orm.ActionAddColumn,
 		Table:  "users",
-		Column: &model.Field{Name: "score", Type: model.FieldInt},
+		Column: &model.Field{Name: "score", Type: model.Int()},
 	}, testModel{})
 	if err != nil {
 		t.Fatal(err)

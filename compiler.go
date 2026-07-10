@@ -4,7 +4,7 @@ import (
 	"github.com/tinywasm/model"
 	"github.com/tinywasm/fmt"
 	"github.com/tinywasm/orm"
-	"github.com/tinywasm/orm/ddl"
+	"github.com/tinywasm/ddlc"
 )
 
 // compiler implements orm.Compiler.
@@ -25,7 +25,7 @@ func (c compiler) Compile(q orm.Query, m model.Model) (orm.Plan, error) {
 }
 
 func (c *compiler) ExportDDL(models []model.Model) (string, error) {
-	sorted, err := ddl.TopologicalSort(models)
+	sorted, err := ddlc.TopologicalSort(models)
 	if err != nil {
 		return "", err
 	}
@@ -38,7 +38,7 @@ func (c *compiler) ExportDDL(models []model.Model) (string, error) {
 		}
 		buf.Write(plan.Query)
 		buf.Write(";\n\n")
-		if ext, ok := m.(interface{ SchemaExt() []orm.FieldExt }); ok {
+		if ext, ok := m.(interface{ SchemaExt() []ddlc.FieldExt }); ok {
 			for _, f := range ext.SchemaExt() {
 				if f.Ref != "" {
 					buf.Write(fmt.Sprintf(
@@ -51,4 +51,4 @@ func (c *compiler) ExportDDL(models []model.Model) (string, error) {
 	return buf.String(), nil
 }
 
-var _ ddl.Exporter = (*compiler)(nil)
+var _ ddlc.Exporter = (*compiler)(nil)

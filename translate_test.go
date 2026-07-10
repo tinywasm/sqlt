@@ -1,11 +1,11 @@
 package sqlt_test
 
-import "github.com/tinywasm/model"
-
 import (
-	"strings"
 	"testing"
 
+	"github.com/tinywasm/ddlc"
+	"github.com/tinywasm/fmt"
+	"github.com/tinywasm/model"
 	"github.com/tinywasm/orm"
 	"github.com/tinywasm/sqlt"
 )
@@ -21,11 +21,11 @@ func TestVarchar_SQLite(t *testing.T) {
 	}
 
 	// Assert: buildCreateTable output contains "username VARCHAR(50)"
-	if !strings.Contains(sql, "username VARCHAR(50)") {
+	if !fmt.Contains(sql, "username VARCHAR(50)") {
 		t.Errorf("expected VARCHAR(50) for username, got %q", sql)
 	}
 	// Assert: field without maximum: "email TEXT"
-	if !strings.Contains(sql, "email TEXT") {
+	if !fmt.Contains(sql, "email TEXT") {
 		t.Errorf("expected TEXT for email, got %q", sql)
 	}
 }
@@ -35,8 +35,8 @@ type testModelVarchar struct{}
 func (m *testModelVarchar) ModelName() string { return "users" }
 func (m *testModelVarchar) Schema() []model.Field {
 	return []model.Field{
-		{Name: "username", Type: model.FieldText, Permitted: model.Permitted{Maximum: 50}},
-		{Name: "email", Type: model.FieldText},
+		{Name: "username", Type: model.Text(), Permitted: model.Permitted{Maximum: 50}},
+		{Name: "email", Type: model.Text()},
 	}
 }
 func (m *testModelVarchar) Pointers() []any { return nil }
@@ -63,7 +63,7 @@ func TestOnDelete_SQLite(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if !strings.Contains(sql, tt.want) {
+			if !fmt.Contains(sql, tt.want) {
 				t.Errorf("expected %q in sql, got %q", tt.want, sql)
 			}
 		})
@@ -77,14 +77,14 @@ type testModelFK struct {
 func (m *testModelFK) ModelName() string { return "sessions" }
 func (m *testModelFK) Schema() []model.Field {
 	return []model.Field{
-		{Name: "id", Type: model.FieldText, DB: &model.FieldDB{PK: true}},
-		{Name: "user_id", Type: model.FieldInt},
+		{Name: "id", Type: model.Text(), DB: &model.FieldDB{PK: true}},
+		{Name: "user_id", Type: model.Int()},
 	}
 }
-func (m *testModelFK) SchemaExt() []orm.FieldExt {
-	return []orm.FieldExt{
+func (m *testModelFK) SchemaExt() []ddlc.FieldExt {
+	return []ddlc.FieldExt{
 		{
-			Field:    model.Field{Name: "user_id", Type: model.FieldInt},
+			Field:    model.Field{Name: "user_id", Type: model.Int()},
 			Ref:      "users",
 			OnDelete: m.onDelete,
 		},
@@ -96,6 +96,6 @@ type testModelParent struct{}
 
 func (m *testModelParent) ModelName() string { return "users" }
 func (m *testModelParent) Schema() []model.Field {
-	return []model.Field{{Name: "id", Type: model.FieldInt, DB: &model.FieldDB{PK: true}}}
+	return []model.Field{{Name: "id", Type: model.Int(), DB: &model.FieldDB{PK: true}}}
 }
 func (m *testModelParent) Pointers() []any { return nil }

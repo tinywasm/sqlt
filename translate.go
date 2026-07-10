@@ -1,10 +1,9 @@
 package sqlt
 
-import "github.com/tinywasm/model"
-
 import (
+	"github.com/tinywasm/ddlc"
 	"github.com/tinywasm/fmt"
-
+	"github.com/tinywasm/model"
 	"github.com/tinywasm/orm"
 )
 
@@ -66,7 +65,7 @@ func buildCreateTable(q orm.Query, m model.Model) (string, []any, error) {
 			} else {
 				col += " PRIMARY KEY"
 				// AUTOINCREMENT is only allowed on INTEGER PRIMARY KEY in SQLite
-				if f.IsAutoInc() && f.Type == model.FieldInt {
+				if f.IsAutoInc() && f.Type.Storage() == model.FieldInt {
 					col += " AUTOINCREMENT"
 				}
 			}
@@ -84,7 +83,7 @@ func buildCreateTable(q orm.Query, m model.Model) (string, []any, error) {
 		cols = append(cols, fmt.Sprintf("PRIMARY KEY (%s)", fmt.Convert(pkCols).Join(", ").String()))
 	}
 
-	if ext, ok := m.(interface{ SchemaExt() []orm.FieldExt }); ok {
+	if ext, ok := m.(interface{ SchemaExt() []ddlc.FieldExt }); ok {
 		for _, f := range ext.SchemaExt() {
 			if f.Ref != "" {
 				refCol := f.RefColumn
@@ -118,7 +117,7 @@ func buildAddColumn(q orm.Query) (string, []any, error) {
 		return "", nil, fmt.Err("table and column required for add column")
 	}
 	return fmt.Sprintf("ALTER TABLE %s ADD COLUMN %s %s",
-		q.Table, q.Column.Name, sqliteType(q.Column.Type)), nil, nil
+		q.Table, q.Column.Name, sqliteType(q.Column.Type.Storage())), nil, nil
 }
 
 func buildRenameColumn(q orm.Query) (string, []any, error) {
@@ -137,10 +136,10 @@ func buildDropColumn(q orm.Query) (string, []any, error) {
 }
 
 func sqliteColumnType(f model.Field) string {
-	if f.Type == model.FieldText && f.Maximum > 0 {
+	if f.Type.Storage() == model.FieldText && f.Maximum > 0 {
 		return fmt.Sprintf("VARCHAR(%d)", f.Maximum)
 	}
-	return sqliteType(f.Type)
+	return sqliteType(f.Type.Storage())
 }
 
 func sqliteType(t model.FieldType) string {
