@@ -1,6 +1,9 @@
 package sqlt_test
 
-import "github.com/tinywasm/model"
+import (
+	"github.com/tinywasm/ddlc"
+	"github.com/tinywasm/model"
+)
 
 import (
 	"strings"
@@ -35,8 +38,8 @@ type testModelVarchar struct{}
 func (m *testModelVarchar) ModelName() string { return "users" }
 func (m *testModelVarchar) Schema() []model.Field {
 	return []model.Field{
-		{Name: "username", Type: model.FieldText, Permitted: model.Permitted{Maximum: 50}},
-		{Name: "email", Type: model.FieldText},
+		{Name: "username", Type: model.Text(), Permitted: model.Permitted{Maximum: 50}},
+		{Name: "email", Type: model.Text()},
 	}
 }
 func (m *testModelVarchar) Pointers() []any { return nil }
@@ -77,14 +80,14 @@ type testModelFK struct {
 func (m *testModelFK) ModelName() string { return "sessions" }
 func (m *testModelFK) Schema() []model.Field {
 	return []model.Field{
-		{Name: "id", Type: model.FieldText, DB: &model.FieldDB{PK: true}},
-		{Name: "user_id", Type: model.FieldInt},
+		{Name: "id", Type: model.Text(), DB: &model.FieldDB{PK: true}},
+		{Name: "user_id", Type: model.Int()},
 	}
 }
-func (m *testModelFK) SchemaExt() []orm.FieldExt {
-	return []orm.FieldExt{
+func (m *testModelFK) SchemaExt() []ddlc.FieldExt {
+	return []ddlc.FieldExt{
 		{
-			Field:    model.Field{Name: "user_id", Type: model.FieldInt},
+			Field:    model.Field{Name: "user_id", Type: model.Int()},
 			Ref:      "users",
 			OnDelete: m.onDelete,
 		},
@@ -96,6 +99,6 @@ type testModelParent struct{}
 
 func (m *testModelParent) ModelName() string { return "users" }
 func (m *testModelParent) Schema() []model.Field {
-	return []model.Field{{Name: "id", Type: model.FieldInt, DB: &model.FieldDB{PK: true}}}
+	return []model.Field{{Name: "id", Type: model.Int(), DB: &model.FieldDB{PK: true}}}
 }
 func (m *testModelParent) Pointers() []any { return nil }

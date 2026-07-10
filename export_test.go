@@ -1,6 +1,9 @@
 package sqlt_test
 
-import "github.com/tinywasm/model"
+import (
+	"github.com/tinywasm/ddlc"
+	"github.com/tinywasm/model"
+)
 
 import (
 	"os"
@@ -57,44 +60,44 @@ func TestExportDDL_FullSchema(t *testing.T) {
 	users := &modelFull{
 		name: "users",
 		fields: []model.Field{
-			{Name: "id", Type: model.FieldInt, DB: &model.FieldDB{PK: true, AutoInc: true}},
-			{Name: "username", Type: model.FieldText, NotNull: true, DB: &model.FieldDB{Unique: true}, Permitted: model.Permitted{Maximum: 50}},
-			{Name: "email", Type: model.FieldText, NotNull: true, DB: &model.FieldDB{Unique: true}},
-			{Name: "score", Type: model.FieldFloat},
-			{Name: "active", Type: model.FieldBool},
-			{Name: "avatar", Type: model.FieldBlob},
+			{Name: "id", Type: model.Int(), DB: &model.FieldDB{PK: true, AutoInc: true}},
+			{Name: "username", Type: model.Text(), NotNull: true, DB: &model.FieldDB{Unique: true}, Permitted: model.Permitted{Maximum: 50}},
+			{Name: "email", Type: model.Text(), NotNull: true, DB: &model.FieldDB{Unique: true}},
+			{Name: "score", Type: model.Float()},
+			{Name: "active", Type: model.Bool()},
+			{Name: "avatar", Type: model.Blob()},
 		},
 	}
 
 	roles := &modelFull{
 		name: "roles",
 		fields: []model.Field{
-			{Name: "id", Type: model.FieldInt, DB: &model.FieldDB{PK: true, AutoInc: true}},
-			{Name: "name", Type: model.FieldText, NotNull: true, DB: &model.FieldDB{Unique: true}, Permitted: model.Permitted{Maximum: 100}},
+			{Name: "id", Type: model.Int(), DB: &model.FieldDB{PK: true, AutoInc: true}},
+			{Name: "name", Type: model.Text(), NotNull: true, DB: &model.FieldDB{Unique: true}, Permitted: model.Permitted{Maximum: 100}},
 		},
 	}
 
 	sessions := &modelFull{
 		name: "sessions",
 		fields: []model.Field{
-			{Name: "id", Type: model.FieldText, DB: &model.FieldDB{PK: true}},
-			{Name: "user_id", Type: model.FieldInt},
-			{Name: "metadata", Type: model.FieldText},
+			{Name: "id", Type: model.Text(), DB: &model.FieldDB{PK: true}},
+			{Name: "user_id", Type: model.Int()},
+			{Name: "metadata", Type: model.Text()},
 		},
-		ext: []orm.FieldExt{
-			{Field: model.Field{Name: "user_id", Type: model.FieldInt}, Ref: "users"},
+		ext: []ddlc.FieldExt{
+			{Field: model.Field{Name: "user_id", Type: model.Int()}, Ref: "users"},
 		},
 	}
 
 	userRoles := &modelFull{
 		name: "user_roles",
 		fields: []model.Field{
-			{Name: "user_id", Type: model.FieldInt, DB: &model.FieldDB{PK: true}},
-			{Name: "role_id", Type: model.FieldInt, DB: &model.FieldDB{PK: true}},
+			{Name: "user_id", Type: model.Int(), DB: &model.FieldDB{PK: true}},
+			{Name: "role_id", Type: model.Int(), DB: &model.FieldDB{PK: true}},
 		},
-		ext: []orm.FieldExt{
-			{Field: model.Field{Name: "user_id", Type: model.FieldInt}, Ref: "users"},
-			{Field: model.Field{Name: "role_id", Type: model.FieldInt}, Ref: "roles"},
+		ext: []ddlc.FieldExt{
+			{Field: model.Field{Name: "user_id", Type: model.Int()}, Ref: "users"},
+			{Field: model.Field{Name: "role_id", Type: model.Int()}, Ref: "roles"},
 		},
 	}
 
@@ -116,10 +119,10 @@ func TestExportDDL_FullSchema(t *testing.T) {
 type modelFull struct {
 	name   string
 	fields []model.Field
-	ext    []orm.FieldExt
+	ext    []ddlc.FieldExt
 }
 
 func (m *modelFull) ModelName() string         { return m.name }
 func (m *modelFull) Schema() []model.Field       { return m.fields }
-func (m *modelFull) SchemaExt() []orm.FieldExt { return m.ext }
+func (m *modelFull) SchemaExt() []ddlc.FieldExt { return m.ext }
 func (m *modelFull) Pointers() []any           { return nil }
