@@ -1,4 +1,4 @@
-# sqlt
+# tinywasm/sqlt
 <img src="docs/img/badges.svg">
 
 SQLite SQL compiler. Implements `storage.Compiler` (DML) and `ddl.Compiler` (DDL) —

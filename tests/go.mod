@@ -8,7 +8,7 @@ require (
 	github.com/tinywasm/ddl v0.0.4
 	github.com/tinywasm/fmt v0.25.3
 	github.com/tinywasm/model v0.0.16
-	github.com/tinywasm/sqlt v0.0.0-00010101000000-000000000000
+	github.com/tinywasm/sqlt v0.0.8
 	github.com/tinywasm/storage v0.0.2
 	modernc.org/sqlite v1.54.0
 )
