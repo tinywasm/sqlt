@@ -1,27 +1,33 @@
 package sqlt
 
 import (
-	"github.com/tinywasm/model"
-	"github.com/tinywasm/fmt"
-	"github.com/tinywasm/orm"
+	"github.com/tinywasm/ddl"
 	"github.com/tinywasm/ddlc"
+	"github.com/tinywasm/fmt"
+	"github.com/tinywasm/model"
+	"github.com/tinywasm/storage"
 )
 
-// compiler implements orm.Compiler.
+// compiler implements storage.Compiler (DML) and ddl.Compiler (DDL).
 type compiler struct{}
 
-// Compile converts an orm.Query into an engine Plan.
-func (c compiler) Compile(q orm.Query, m model.Model) (orm.Plan, error) {
+// Compile converts a storage.Query into an engine Plan.
+func (c compiler) Compile(q storage.Query, m model.Model) (storage.Plan, error) {
 	sqlStr, args, err := translateQuery(q, m)
 	if err != nil {
-		return orm.Plan{}, err
+		return storage.Plan{}, err
 	}
 
-	return orm.Plan{
+	return storage.Plan{
 		Mode:  q.Action,
 		Query: sqlStr,
 		Args:  args,
 	}, nil
+}
+
+// CompileDDL converts a ddl.Stmt into SQL.
+func (c compiler) CompileDDL(s ddl.Stmt, m model.Model) (string, []any, error) {
+	return translateDDL(s, m)
 }
 
 func (c *compiler) ExportDDL(models []model.Model) (string, error) {
@@ -32,11 +38,11 @@ func (c *compiler) ExportDDL(models []model.Model) (string, error) {
 	var buf fmt.Builder
 	buf.Write("-- dialect: sqlite\n\n")
 	for _, m := range sorted {
-		plan, err := c.Compile(orm.Query{Action: orm.ActionCreateTable, Table: m.ModelName()}, m)
+		sql, _, err := c.CompileDDL(ddl.Stmt{Op: ddl.OpCreateTable, Table: m.ModelName()}, m)
 		if err != nil {
 			return "", err
 		}
-		buf.Write(plan.Query)
+		buf.Write(sql)
 		buf.Write(";\n\n")
 		if ext, ok := m.(interface{ SchemaExt() []ddlc.FieldExt }); ok {
 			for _, f := range ext.SchemaExt() {
@@ -51,4 +57,8 @@ func (c *compiler) ExportDDL(models []model.Model) (string, error) {
 	return buf.String(), nil
 }
 
-var _ ddlc.Exporter = (*compiler)(nil)
+var (
+	_ storage.Compiler = (*compiler)(nil)
+	_ ddl.Compiler     = (*compiler)(nil)
+	_ ddlc.Exporter    = (*compiler)(nil)
+)

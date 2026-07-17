@@ -3,12 +3,15 @@ package sqlt_test
 import (
 	"testing"
 
+	"github.com/tinywasm/ddl"
 	"github.com/tinywasm/model"
-	"github.com/tinywasm/orm"
 	"github.com/tinywasm/sqlt"
+	"github.com/tinywasm/storage"
 )
 
-type testModel struct{}
+type testModel struct {
+	dummyModel
+}
 
 func (m testModel) ModelName() string { return "users" }
 func (m testModel) Schema() []model.Field {
@@ -20,11 +23,14 @@ func (m testModel) Schema() []model.Field {
 }
 func (m testModel) Pointers() []any { return nil }
 
-var _ orm.Compiler = sqlt.NewCompiler()
+var (
+	_ storage.Compiler = sqlt.NewCompiler()
+	_ ddl.Compiler     = sqlt.NewCompiler()
+)
 
 func TestTranslateInsert(t *testing.T) {
-	sql, args, err := sqlt.Translate(orm.Query{
-		Action:  orm.ActionCreate,
+	sql, args, err := sqlt.Translate(storage.Query{
+		Action:  storage.ActionCreate,
 		Table:   "users",
 		Columns: []string{"id", "name", "age"},
 		Values:  []any{1, "alice", 30},
@@ -42,8 +48,8 @@ func TestTranslateInsert(t *testing.T) {
 }
 
 func TestTranslateSelect(t *testing.T) {
-	sql, _, err := sqlt.Translate(orm.Query{
-		Action: orm.ActionReadAll,
+	sql, _, err := sqlt.Translate(storage.Query{
+		Action: storage.ActionReadAll,
 		Table:  "users",
 	}, testModel{})
 	if err != nil {
@@ -56,10 +62,10 @@ func TestTranslateSelect(t *testing.T) {
 }
 
 func TestTranslateSelectWhere(t *testing.T) {
-	sql, args, err := sqlt.Translate(orm.Query{
-		Action:     orm.ActionReadOne,
+	sql, args, err := sqlt.Translate(storage.Query{
+		Action:     storage.ActionReadOne,
 		Table:      "users",
-		Conditions: []orm.Condition{orm.Eq("id", 1)},
+		Conditions: []storage.Condition{storage.Eq("id", 1)},
 	}, testModel{})
 	if err != nil {
 		t.Fatal(err)
@@ -74,12 +80,12 @@ func TestTranslateSelectWhere(t *testing.T) {
 }
 
 func TestTranslateUpdate(t *testing.T) {
-	sql, args, err := sqlt.Translate(orm.Query{
-		Action:     orm.ActionUpdate,
+	sql, args, err := sqlt.Translate(storage.Query{
+		Action:     storage.ActionUpdate,
 		Table:      "users",
 		Columns:    []string{"name", "age"},
 		Values:     []any{"bob", 25},
-		Conditions: []orm.Condition{orm.Eq("id", 1)},
+		Conditions: []storage.Condition{storage.Eq("id", 1)},
 	}, testModel{})
 	if err != nil {
 		t.Fatal(err)
@@ -94,10 +100,10 @@ func TestTranslateUpdate(t *testing.T) {
 }
 
 func TestTranslateDelete(t *testing.T) {
-	sql, args, err := sqlt.Translate(orm.Query{
-		Action:     orm.ActionDelete,
+	sql, args, err := sqlt.Translate(storage.Query{
+		Action:     storage.ActionDelete,
 		Table:      "users",
-		Conditions: []orm.Condition{orm.Eq("id", 1)},
+		Conditions: []storage.Condition{storage.Eq("id", 1)},
 	}, testModel{})
 	if err != nil {
 		t.Fatal(err)
@@ -112,9 +118,9 @@ func TestTranslateDelete(t *testing.T) {
 }
 
 func TestTranslateCreateTable(t *testing.T) {
-	sql, _, err := sqlt.Translate(orm.Query{
-		Action: orm.ActionCreateTable,
-		Table:  "users",
+	sql, _, err := sqlt.TranslateDDL(ddl.Stmt{
+		Op:    ddl.OpCreateTable,
+		Table: "users",
 	}, testModel{})
 	if err != nil {
 		t.Fatal(err)
@@ -128,9 +134,9 @@ func TestTranslateCreateTable(t *testing.T) {
 }
 
 func TestTranslateDropTable(t *testing.T) {
-	sql, _, err := sqlt.Translate(orm.Query{
-		Action: orm.ActionDropTable,
-		Table:  "users",
+	sql, _, err := sqlt.TranslateDDL(ddl.Stmt{
+		Op:    ddl.OpDropTable,
+		Table: "users",
 	}, testModel{})
 	if err != nil {
 		t.Fatal(err)
@@ -142,8 +148,8 @@ func TestTranslateDropTable(t *testing.T) {
 }
 
 func TestTranslateAddColumn(t *testing.T) {
-	sql, _, err := sqlt.Translate(orm.Query{
-		Action: orm.ActionAddColumn,
+	sql, _, err := sqlt.TranslateDDL(ddl.Stmt{
+		Op:     ddl.OpAddColumn,
 		Table:  "users",
 		Column: &model.Field{Name: "bio", Type: model.Text()},
 	}, testModel{})
@@ -155,8 +161,8 @@ func TestTranslateAddColumn(t *testing.T) {
 		t.Errorf("got %q, want %q", sql, want)
 	}
 
-	sql, _, err = sqlt.Translate(orm.Query{
-		Action: orm.ActionAddColumn,
+	sql, _, err = sqlt.TranslateDDL(ddl.Stmt{
+		Op:     ddl.OpAddColumn,
 		Table:  "users",
 		Column: &model.Field{Name: "score", Type: model.Int()},
 	}, testModel{})
@@ -170,8 +176,8 @@ func TestTranslateAddColumn(t *testing.T) {
 }
 
 func TestTranslateRenameColumn(t *testing.T) {
-	sql, _, err := sqlt.Translate(orm.Query{
-		Action:  orm.ActionRenameColumn,
+	sql, _, err := sqlt.TranslateDDL(ddl.Stmt{
+		Op:      ddl.OpRenameColumn,
 		Table:   "users",
 		OldName: "age",
 		Column:  &model.Field{Name: "years"},
@@ -186,10 +192,10 @@ func TestTranslateRenameColumn(t *testing.T) {
 }
 
 func TestTranslateDropColumn(t *testing.T) {
-	sql, _, err := sqlt.Translate(orm.Query{
-		Action:  orm.ActionDropColumn,
-		Table:   "users",
-		Columns: []string{"age"},
+	sql, _, err := sqlt.TranslateDDL(ddl.Stmt{
+		Op:         ddl.OpDropColumn,
+		Table:      "users",
+		ColumnName: "age",
 	}, testModel{})
 	if err != nil {
 		t.Fatal(err)
@@ -201,10 +207,10 @@ func TestTranslateDropColumn(t *testing.T) {
 }
 
 func TestTranslateNullConditions(t *testing.T) {
-	sql, args, err := sqlt.Translate(orm.Query{
-		Action:     orm.ActionReadAll,
+	sql, args, err := sqlt.Translate(storage.Query{
+		Action:     storage.ActionReadAll,
 		Table:      "users",
-		Conditions: []orm.Condition{orm.IsNotNull("age")},
+		Conditions: []storage.Condition{storage.IsNotNull("age")},
 	}, testModel{})
 	if err != nil {
 		t.Fatal(err)
@@ -216,100 +222,97 @@ func TestTranslateNullConditions(t *testing.T) {
 	if len(args) != 0 {
 		t.Errorf("expected 0 args, got %d", len(args))
 	}
-
-	// IS NULL doesn't have a helper in current orm, but buildConditions should handle it
-	// if it somehow receives it (e.g. via direct construction if orm adds it or internal use).
 }
 
 func TestCompilerErrors(t *testing.T) {
-	_, _, err := sqlt.Translate(orm.Query{Action: 99}, nil)
+	_, _, err := sqlt.Translate(storage.Query{Action: 99}, nil)
 	if err == nil {
 		t.Fatal("expected error for unsupported action")
 	}
 
-	_, _, err = sqlt.Translate(orm.Query{Action: orm.ActionCreateTable}, &testModel{})
+	_, _, err = sqlt.TranslateDDL(ddl.Stmt{Op: ddl.OpCreateTable}, &testModel{})
 	if err == nil {
 		t.Fatal("expected error for create table without table name")
 	}
 
-	_, _, err = sqlt.Translate(orm.Query{Action: orm.ActionCreateTable, Table: "t"}, nil)
+	_, _, err = sqlt.TranslateDDL(ddl.Stmt{Op: ddl.OpCreateTable, Table: "t"}, nil)
 	if err == nil {
 		t.Fatal("expected error for create table without model")
 	}
 
-	_, _, err = sqlt.Translate(orm.Query{Action: orm.ActionDropTable}, nil)
+	_, _, err = sqlt.TranslateDDL(ddl.Stmt{Op: ddl.OpDropTable}, nil)
 	if err == nil {
 		t.Fatal("expected error for drop table without table name")
 	}
 
-	_, _, err = sqlt.Translate(orm.Query{Action: orm.ActionCreate, Columns: []string{"id"}}, nil)
+	_, _, err = sqlt.Translate(storage.Query{Action: storage.ActionCreate, Columns: []string{"id"}}, nil)
 	if err == nil {
 		t.Fatal("expected error for insert without table")
 	}
 
-	_, _, err = sqlt.Translate(orm.Query{Action: orm.ActionCreate, Table: "t"}, nil)
+	_, _, err = sqlt.Translate(storage.Query{Action: storage.ActionCreate, Table: "t"}, nil)
 	if err == nil {
 		t.Fatal("expected error for insert without columns")
 	}
 
-	_, _, err = sqlt.Translate(orm.Query{Action: orm.ActionReadOne}, nil)
+	_, _, err = sqlt.Translate(storage.Query{Action: storage.ActionReadOne}, nil)
 	if err == nil {
 		t.Fatal("expected error for select without table")
 	}
 
-	_, _, err = sqlt.Translate(orm.Query{Action: orm.ActionUpdate, Columns: []string{"id"}}, nil)
+	_, _, err = sqlt.Translate(storage.Query{Action: storage.ActionUpdate, Columns: []string{"id"}}, nil)
 	if err == nil {
 		t.Fatal("expected error for update without table")
 	}
 
-	_, _, err = sqlt.Translate(orm.Query{Action: orm.ActionUpdate, Table: "t"}, nil)
+	_, _, err = sqlt.Translate(storage.Query{Action: storage.ActionUpdate, Table: "t"}, nil)
 	if err == nil {
 		t.Fatal("expected error for update without columns")
 	}
 
-	_, _, err = sqlt.Translate(orm.Query{Action: orm.ActionDelete}, nil)
+	_, _, err = sqlt.Translate(storage.Query{Action: storage.ActionDelete}, nil)
 	if err == nil {
 		t.Fatal("expected error for delete without table")
 	}
 
-	_, _, err = sqlt.Translate(orm.Query{Action: orm.ActionAddColumn, Table: "t"}, nil)
+	_, _, err = sqlt.TranslateDDL(ddl.Stmt{Op: ddl.OpAddColumn, Table: "t"}, nil)
 	if err == nil {
 		t.Fatal("expected error for add column without column")
 	}
 
-	_, _, err = sqlt.Translate(orm.Query{Action: orm.ActionAddColumn, Column: &model.Field{Name: "c"}}, nil)
+	_, _, err = sqlt.TranslateDDL(ddl.Stmt{Op: ddl.OpAddColumn, Column: &model.Field{Name: "c"}}, nil)
 	if err == nil {
 		t.Fatal("expected error for add column without table")
 	}
 
-	_, _, err = sqlt.Translate(orm.Query{Action: orm.ActionRenameColumn, Table: "t", OldName: "o"}, nil)
+	_, _, err = sqlt.TranslateDDL(ddl.Stmt{Op: ddl.OpRenameColumn, Table: "t", OldName: "o"}, nil)
 	if err == nil {
 		t.Fatal("expected error for rename column without column")
 	}
 
-	_, _, err = sqlt.Translate(orm.Query{Action: orm.ActionRenameColumn, Table: "t", Column: &model.Field{Name: "c"}}, nil)
+	_, _, err = sqlt.TranslateDDL(ddl.Stmt{Op: ddl.OpRenameColumn, Table: "t", Column: &model.Field{Name: "c"}}, nil)
 	if err == nil {
 		t.Fatal("expected error for rename column without old name")
 	}
 
-	_, _, err = sqlt.Translate(orm.Query{Action: orm.ActionDropColumn, Table: "t"}, nil)
+	_, _, err = sqlt.TranslateDDL(ddl.Stmt{Op: ddl.OpDropColumn, Table: "t"}, nil)
 	if err == nil {
-		t.Fatal("expected error for drop column without columns")
+		t.Fatal("expected error for drop column without columnName")
 	}
 
-	_, _, err = sqlt.Translate(orm.Query{
-		Action:     orm.ActionReadAll,
+	_, _, err = sqlt.Translate(storage.Query{
+		Action:     storage.ActionReadAll,
 		Table:      "t",
-		Conditions: []orm.Condition{orm.In("id", 1)},
+		Conditions: []storage.Condition{storage.In("id", 1)},
 	}, nil)
 	if err == nil {
 		t.Fatal("expected error for non-slice IN value")
 	}
 
-	_, _, err = sqlt.Translate(orm.Query{
-		Action:     orm.ActionReadAll,
+	_, _, err = sqlt.Translate(storage.Query{
+		Action:     storage.ActionReadAll,
 		Table:      "t",
-		Conditions: []orm.Condition{orm.In("id", []any{})},
+		Conditions: []storage.Condition{storage.In("id", []any{})},
 	}, nil)
 	if err == nil {
 		t.Fatal("expected error for empty slice IN value")

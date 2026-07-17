@@ -113,6 +113,7 @@ func TestExportDDL_FullSchema(t *testing.T) {
 }
 
 type modelFull struct {
+	dummyModel
 	name   string
 	fields []model.Field
 	ext    []ddlc.FieldExt

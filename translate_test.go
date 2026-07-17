@@ -3,18 +3,18 @@ package sqlt_test
 import (
 	"testing"
 
+	"github.com/tinywasm/ddl"
 	"github.com/tinywasm/ddlc"
 	"github.com/tinywasm/fmt"
 	"github.com/tinywasm/model"
-	"github.com/tinywasm/orm"
 	"github.com/tinywasm/sqlt"
 )
 
 func TestVarchar_SQLite(t *testing.T) {
 	m := &testModelVarchar{}
-	sql, _, err := sqlt.Translate(orm.Query{
-		Action: orm.ActionCreateTable,
-		Table:  "users",
+	sql, _, err := sqlt.TranslateDDL(ddl.Stmt{
+		Op:    ddl.OpCreateTable,
+		Table: "users",
 	}, m)
 	if err != nil {
 		t.Fatal(err)
@@ -30,7 +30,9 @@ func TestVarchar_SQLite(t *testing.T) {
 	}
 }
 
-type testModelVarchar struct{}
+type testModelVarchar struct {
+	dummyModel
+}
 
 func (m *testModelVarchar) ModelName() string { return "users" }
 func (m *testModelVarchar) Schema() []model.Field {
@@ -56,9 +58,9 @@ func TestOnDelete_SQLite(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &testModelFK{onDelete: tt.onDelete}
-			sql, _, err := sqlt.Translate(orm.Query{
-				Action: orm.ActionCreateTable,
-				Table:  "sessions",
+			sql, _, err := sqlt.TranslateDDL(ddl.Stmt{
+				Op:    ddl.OpCreateTable,
+				Table: "sessions",
 			}, m)
 			if err != nil {
 				t.Fatal(err)
@@ -71,6 +73,7 @@ func TestOnDelete_SQLite(t *testing.T) {
 }
 
 type testModelFK struct {
+	dummyModel
 	onDelete string
 }
 
@@ -92,7 +95,9 @@ func (m *testModelFK) SchemaExt() []ddlc.FieldExt {
 }
 func (m *testModelFK) Pointers() []any { return nil }
 
-type testModelParent struct{}
+type testModelParent struct {
+	dummyModel
+}
 
 func (m *testModelParent) ModelName() string { return "users" }
 func (m *testModelParent) Schema() []model.Field {
