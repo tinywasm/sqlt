@@ -1,10 +1,9 @@
-package sqlt_test
+package tests
 
 import (
 	"os"
 	"testing"
 
-	"github.com/tinywasm/ddlc"
 	"github.com/tinywasm/fmt"
 	"github.com/tinywasm/model"
 	"github.com/tinywasm/sqlt"
@@ -47,7 +46,7 @@ func TestExportDDL_EmptyInput(t *testing.T) {
 }
 
 func TestExportDDL_FullSchema(t *testing.T) {
-	goldenBytes, err := os.ReadFile("tests/schema.sql")
+	goldenBytes, err := os.ReadFile("schema.sql")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,7 +79,7 @@ func TestExportDDL_FullSchema(t *testing.T) {
 			{Name: "user_id", Type: model.Int()},
 			{Name: "metadata", Type: model.Text()},
 		},
-		ext: []ddlc.FieldExt{
+		ext: []model.FieldExt{
 			{Field: model.Field{Name: "user_id", Type: model.Int()}, Ref: "users"},
 		},
 	}
@@ -91,7 +90,7 @@ func TestExportDDL_FullSchema(t *testing.T) {
 			{Name: "user_id", Type: model.Int(), DB: &model.FieldDB{PK: true}},
 			{Name: "role_id", Type: model.Int(), DB: &model.FieldDB{PK: true}},
 		},
-		ext: []ddlc.FieldExt{
+		ext: []model.FieldExt{
 			{Field: model.Field{Name: "user_id", Type: model.Int()}, Ref: "users"},
 			{Field: model.Field{Name: "role_id", Type: model.Int()}, Ref: "roles"},
 		},
@@ -116,10 +115,10 @@ type modelFull struct {
 	dummyModel
 	name   string
 	fields []model.Field
-	ext    []ddlc.FieldExt
+	ext    []model.FieldExt
 }
 
-func (m *modelFull) ModelName() string          { return m.name }
-func (m *modelFull) Schema() []model.Field      { return m.fields }
-func (m *modelFull) SchemaExt() []ddlc.FieldExt { return m.ext }
-func (m *modelFull) Pointers() []any            { return nil }
+func (m *modelFull) ModelName() string           { return m.name }
+func (m *modelFull) Schema() []model.Field       { return m.fields }
+func (m *modelFull) SchemaExt() []model.FieldExt { return m.ext }
+func (m *modelFull) Pointers() []any             { return nil }

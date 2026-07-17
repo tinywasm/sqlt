@@ -1,10 +1,9 @@
-package sqlt_test
+package tests
 
 import (
 	"testing"
 
 	"github.com/tinywasm/ddl"
-	"github.com/tinywasm/ddlc"
 	"github.com/tinywasm/fmt"
 	"github.com/tinywasm/model"
 	"github.com/tinywasm/sqlt"
@@ -84,8 +83,8 @@ func (m *testModelFK) Schema() []model.Field {
 		{Name: "user_id", Type: model.Int()},
 	}
 }
-func (m *testModelFK) SchemaExt() []ddlc.FieldExt {
-	return []ddlc.FieldExt{
+func (m *testModelFK) SchemaExt() []model.FieldExt {
+	return []model.FieldExt{
 		{
 			Field:    model.Field{Name: "user_id", Type: model.Int()},
 			Ref:      "users",

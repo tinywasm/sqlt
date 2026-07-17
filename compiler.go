@@ -2,7 +2,6 @@ package sqlt
 
 import (
 	"github.com/tinywasm/ddl"
-	"github.com/tinywasm/ddlc"
 	"github.com/tinywasm/fmt"
 	"github.com/tinywasm/model"
 	"github.com/tinywasm/storage"
@@ -31,7 +30,7 @@ func (c compiler) CompileDDL(s ddl.Stmt, m model.Model) (string, []any, error) {
 }
 
 func (c *compiler) ExportDDL(models []model.Model) (string, error) {
-	sorted, err := ddlc.TopologicalSort(models)
+	sorted, err := ddl.TopologicalSort(models)
 	if err != nil {
 		return "", err
 	}
@@ -44,7 +43,7 @@ func (c *compiler) ExportDDL(models []model.Model) (string, error) {
 		}
 		buf.Write(sql)
 		buf.Write(";\n\n")
-		if ext, ok := m.(interface{ SchemaExt() []ddlc.FieldExt }); ok {
+		if ext, ok := m.(interface{ SchemaExt() []model.FieldExt }); ok {
 			for _, f := range ext.SchemaExt() {
 				if f.Ref != "" {
 					buf.Write(fmt.Sprintf(
@@ -60,5 +59,4 @@ func (c *compiler) ExportDDL(models []model.Model) (string, error) {
 var (
 	_ storage.Compiler = (*compiler)(nil)
 	_ ddl.Compiler     = (*compiler)(nil)
-	_ ddlc.Exporter    = (*compiler)(nil)
 )

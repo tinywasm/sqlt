@@ -2,7 +2,6 @@ package sqlt
 
 import (
 	"github.com/tinywasm/ddl"
-	"github.com/tinywasm/ddlc"
 	"github.com/tinywasm/fmt"
 	"github.com/tinywasm/model"
 	"github.com/tinywasm/storage"
@@ -92,7 +91,7 @@ func buildCreateTable(s ddl.Stmt, m model.Model) (string, []any, error) {
 		cols = append(cols, fmt.Sprintf("PRIMARY KEY (%s)", fmt.Convert(pkCols).Join(", ").String()))
 	}
 
-	if ext, ok := m.(interface{ SchemaExt() []ddlc.FieldExt }); ok {
+	if ext, ok := m.(interface{ SchemaExt() []model.FieldExt }); ok {
 		for _, f := range ext.SchemaExt() {
 			if f.Ref != "" {
 				refCol := f.RefColumn

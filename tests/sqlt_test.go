@@ -1,4 +1,4 @@
-package sqlt_test
+package tests
 
 import (
 	"testing"

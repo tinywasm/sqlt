@@ -6,7 +6,7 @@ import (
 	"github.com/tinywasm/storage"
 )
 
-// NewCompiler returns a *compiler that implements storage.Compiler, ddl.Compiler and ddlc.Exporter.
+// NewCompiler returns a *compiler that implements storage.Compiler and ddl.Compiler.
 func NewCompiler() *compiler {
 	return &compiler{}
 }

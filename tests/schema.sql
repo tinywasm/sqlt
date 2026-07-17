@@ -1,6 +1,6 @@
 -- dialect: sqlite
 --
--- Fixture para TestExportDDL_FullSchema en sqlt/export_test.go
+-- Fixture para TestExportDDL_FullSchema en sqlt/tests/export_test.go
 --
 -- Cubre TODOS los tipos DB del framework y las 3 estrategias de PK:
 --
