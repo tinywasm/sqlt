@@ -5,7 +5,7 @@ go 1.25.2
 replace github.com/tinywasm/sqlt => ../
 
 require (
-	github.com/tinywasm/ddl v0.0.4
+	github.com/tinywasm/ddl v0.0.12
 	github.com/tinywasm/fmt v0.25.7
 	github.com/tinywasm/model v0.1.4
 	github.com/tinywasm/sqlt v0.0.8
