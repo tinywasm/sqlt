@@ -3,10 +3,10 @@ package tests
 import (
 	"testing"
 
-	"github.com/tinywasm/ddl"
-	"github.com/tinywasm/fmt"
-	"github.com/tinywasm/model"
-	"github.com/tinywasm/sqlt"
+	"webtyp.com/ddl"
+	"webtyp.com/fmt"
+	"webtyp.com/model"
+	"webtyp.com/sqlt"
 )
 
 func TestVarchar_SQLite(t *testing.T) {

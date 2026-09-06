@@ -1,9 +1,9 @@
 package sqlt
 
 import (
-	"github.com/tinywasm/ddl"
-	"github.com/tinywasm/model"
-	"github.com/tinywasm/storage"
+	"webtyp.com/ddl"
+	"webtyp.com/model"
+	"webtyp.com/storage"
 )
 
 // NewCompiler returns a *compiler that implements storage.Compiler and ddl.Compiler.

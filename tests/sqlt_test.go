@@ -3,10 +3,10 @@ package tests
 import (
 	"testing"
 
-	"github.com/tinywasm/ddl"
-	"github.com/tinywasm/model"
-	"github.com/tinywasm/sqlt"
-	"github.com/tinywasm/storage"
+	"webtyp.com/ddl"
+	"webtyp.com/model"
+	"webtyp.com/sqlt"
+	"webtyp.com/storage"
 )
 
 type testModel struct {

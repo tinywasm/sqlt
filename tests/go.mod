@@ -1,15 +1,15 @@
-module github.com/tinywasm/sqlt/tests
+module webtyp.com/sqlt/tests
 
 go 1.25.2
 
-replace github.com/tinywasm/sqlt => ../
+replace webtyp.com/sqlt => ../
 
 require (
-	github.com/tinywasm/ddl v0.0.12
-	github.com/tinywasm/fmt v0.25.7
-	github.com/tinywasm/model v0.1.4
-	github.com/tinywasm/sqlt v0.0.9
-	github.com/tinywasm/storage v0.0.6
+	webtyp.com/ddl v0.0.12
+	webtyp.com/fmt v0.25.7
+	webtyp.com/model v0.1.4
+	webtyp.com/sqlt v0.0.9
+	webtyp.com/storage v0.0.6
 	modernc.org/sqlite v1.54.0
 )
 

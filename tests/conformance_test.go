@@ -4,12 +4,12 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/tinywasm/ddl"
-	ddlconf "github.com/tinywasm/ddl/conformance"
-	"github.com/tinywasm/model"
-	"github.com/tinywasm/sqlt"
-	"github.com/tinywasm/storage"
-	dbconf "github.com/tinywasm/storage/conformance"
+	"webtyp.com/ddl"
+	ddlconf "webtyp.com/ddl/conformance"
+	"webtyp.com/model"
+	"webtyp.com/sqlt"
+	"webtyp.com/storage"
+	dbconf "webtyp.com/storage/conformance"
 
 	_ "modernc.org/sqlite"
 )

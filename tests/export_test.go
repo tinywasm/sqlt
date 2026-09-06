@@ -4,9 +4,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/tinywasm/fmt"
-	"github.com/tinywasm/model"
-	"github.com/tinywasm/sqlt"
+	"webtyp.com/fmt"
+	"webtyp.com/model"
+	"webtyp.com/sqlt"
 )
 
 func TestAutoIndex_SQLite(t *testing.T) {

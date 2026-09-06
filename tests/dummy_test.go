@@ -1,6 +1,6 @@
 package tests
 
-import "github.com/tinywasm/model"
+import "webtyp.com/model"
 
 type dummyModel struct{}
 

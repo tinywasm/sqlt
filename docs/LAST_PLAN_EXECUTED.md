@@ -1,24 +1,24 @@
 ---
-PLAN: "refactor!: sqlt implementa storage.Conn + ddl.Compiler (contrato movido de orm a tinywasm/storage)"
+PLAN: "refactor!: sqlt implementa storage.Conn + ddl.Compiler (contrato movido de orm a webtyp/storage)"
 TAG: v0.1.0
 ---
 
-# PLAN — `tinywasm/sqlt`: migrar de `orm.Compiler` a `storage.Compiler` + `ddl.Compiler`
+# PLAN — `webtyp/sqlt`: migrar de `orm.Compiler` a `storage.Compiler` + `ddl.Compiler`
 
 Orquestado por
-[`DB_PORT_MASTER_PLAN.md`](https://github.com/tinywasm/app/blob/main/docs/DB_PORT_MASTER_PLAN.md)
-— **pieza #4**. Autocontenido, en español. **Solo tienes este repo** (`github.com/tinywasm/sqlt`).
+[`DB_PORT_MASTER_PLAN.md`](https://github.com/webtyp/app/blob/main/docs/DB_PORT_MASTER_PLAN.md)
+— **pieza #4**. Autocontenido, en español. **Solo tienes este repo** (`webtyp.com/sqlt`).
 
-> **Prerequisito:** `go install github.com/tinywasm/devflow/cmd/gotest@latest`.
+> **Prerequisito:** `go install webtyp.com/devflow/cmd/gotest@latest`.
 > Tests con `gotest`. Publica con `gopush 'mensaje'`.
-> Este plan **requiere `tinywasm/storage@v0.0.2` y `tinywasm/ddl@v0.0.2` ya publicados**. Si no resuelven
+> Este plan **requiere `webtyp/storage@v0.0.2` y `webtyp/ddl@v0.0.2` ya publicados**. Si no resuelven
 > en `go get`, para y repórtalo.
 
 ## 0. Qué cambió respecto a la versión anterior de este plan
 
 Antes: `sqlt` iba a implementar `orm.Compiler` (DML) + `ddl.Compiler` (DDL), probando
 `orm/conformance`+`ddl/conformance`. Eso asumía que `orm` seguía siendo dueño del contrato de
-almacenamiento. Ya no lo es: el contrato completo (DML) se extrajo a `tinywasm/storage`. Ahora:
+almacenamiento. Ya no lo es: el contrato completo (DML) se extrajo a `webtyp/storage`. Ahora:
 
 - `sqlt` implementa **`storage.Compiler`** (no `orm.Compiler` — `orm` ni se importa) para DML, y
   **`ddl.Compiler`** para DDL (sin cambios de intención respecto a la versión anterior de este plan).
@@ -29,7 +29,7 @@ almacenamiento. Ya no lo es: el contrato completo (DML) se extrajo a `tinywasm/s
 ## 1. Qué se hace y por qué
 
 `sqlt` es el **compilador SQLite puro** — traduce `storage.Query`/`ddl.Stmt` a SQL de sqlite. No abre
-conexiones, no ejecuta nada (eso lo hace `tinywasm/sqlite`, un repo hermano que envuelve un `*sql.DB`
+conexiones, no ejecuta nada (eso lo hace `webtyp/sqlite`, un repo hermano que envuelve un `*sql.DB`
 real en un `storage.Conn` — fuera de alcance de este plan, tiene el suyo propio). `sqlt` entra en **ambos**
 contratos ejecutables porque es un compilador SQL completo (DML+DDL):
 
@@ -58,10 +58,10 @@ contratos ejecutables porque es un compilador SQL completo (DML+DDL):
 ### 3.1 `go.mod`
 
 ```
-go get github.com/tinywasm/storage@v0.0.1
-go get github.com/tinywasm/ddl@v0.0.1
+go get webtyp.com/storage@v0.0.1
+go get webtyp.com/ddl@v0.0.1
 go get modernc.org/sqlite@latest   # driver, SOLO para los tests de conformidad
-go mod tidy                         # esto debe QUITAR github.com/tinywasm/orm por completo
+go mod tidy                         # esto debe QUITAR github.com/webtyp/orm por completo
 ```
 
 ### 3.2 `compiler.go` — dos compiladores, uno por contrato
@@ -70,11 +70,11 @@ go mod tidy                         # esto debe QUITAR github.com/tinywasm/orm p
 package sqlt
 
 import (
-	"github.com/tinywasm/ddl"
-	"github.com/tinywasm/ddlc"
-	"github.com/tinywasm/fmt"
-	"github.com/tinywasm/model"
-	"github.com/tinywasm/storage"
+	"webtyp.com/ddl"
+	"webtyp.com/ddlc"
+	"webtyp.com/fmt"
+	"webtyp.com/model"
+	"webtyp.com/storage"
 )
 
 // compiler implements storage.Compiler (DML) and ddl.Compiler (DDL) — two distinct methods, no
@@ -143,10 +143,10 @@ var (
 package sqlt
 
 import (
-	"github.com/tinywasm/ddl"
-	"github.com/tinywasm/fmt"
-	"github.com/tinywasm/model"
-	"github.com/tinywasm/storage"
+	"webtyp.com/ddl"
+	"webtyp.com/fmt"
+	"webtyp.com/model"
+	"webtyp.com/storage"
 )
 
 // translateQuery converts a storage.Query (DML only) into a SQLite SQL string and arguments.
@@ -203,9 +203,9 @@ func translateDDL(s ddl.Stmt, m model.Model) (string, []any, error) {
 package sqlt
 
 import (
-	"github.com/tinywasm/ddl"
-	"github.com/tinywasm/model"
-	"github.com/tinywasm/storage"
+	"webtyp.com/ddl"
+	"webtyp.com/model"
+	"webtyp.com/storage"
 )
 
 func NewCompiler() *compiler { return &compiler{} }
@@ -231,18 +231,18 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/tinywasm/ddl"
-	ddlconf "github.com/tinywasm/ddl/conformance"
-	"github.com/tinywasm/model"
-	"github.com/tinywasm/sqlt"
-	"github.com/tinywasm/storage"
-	dbconf "github.com/tinywasm/storage/conformance"
+	"webtyp.com/ddl"
+	ddlconf "webtyp.com/ddl/conformance"
+	"webtyp.com/model"
+	"webtyp.com/sqlt"
+	"webtyp.com/storage"
+	dbconf "webtyp.com/storage/conformance"
 
 	_ "modernc.org/sqlite"
 )
 
 // sqlConn implements storage.Conn (Executor+Compiler) directly over a *sql.DB — this is test-only
-// wiring, the same role tinywasm/sqlite plays for real consumers (see its own PLAN.md). sqlt
+// wiring, the same role webtyp/sqlite plays for real consumers (see its own PLAN.md). sqlt
 // itself never imports database/sql outside tests.
 type sqlConn struct {
 	*sql.DB
@@ -293,7 +293,7 @@ func TestSqlt_DBConformance(t *testing.T) {
 	})
 }
 
-// DDL: drive tinywasm/ddl runtime with sqlt's ddl.Compiler.
+// DDL: drive webtyp/ddl runtime with sqlt's ddl.Compiler.
 func TestSqlt_DDLConformance(t *testing.T) {
 	ddlconf.Run(t, ddlconf.Factory{
 		Name: "sqlt",
@@ -310,7 +310,7 @@ func TestSqlt_DDLConformance(t *testing.T) {
 ```
 
 > Ajusta `cols` a la introspección real de SQLite (`PRAGMA table_info(<t>)`), leyendo la 2ª columna
-> (name) de cada fila. La firma exacta de `ddlconf.Factory` viene de `tinywasm/ddl/docs/PLAN.md` §3.3
+> (name) de cada fila. La firma exacta de `ddlconf.Factory` viene de `webtyp/ddl/docs/PLAN.md` §3.3
 > — léela y adáptala si difiere. El nombre `sqltCompilerAlias` en el boceto de `sqlConn` es un
 > placeholder de forma: usa directamente el tipo que devuelve `sqlt.NewCompiler()` (no exportado hoy;
 > si necesitas nombrarlo en la firma del struct, usa `*compiler` si estás en `package sqlt`, o
@@ -327,10 +327,10 @@ Nunca la suite ni el modelo `Widget`. Puntos: placeholders `?`/orden de args, DD
 ## 5. Criterios de aceptación
 
 - `*compiler` implementa `storage.Compiler` **y** `ddl.Compiler` **y** `ddlc.Exporter` (`var _` de los
-  tres). **Cero** `github.com/tinywasm/orm` en todo el repo (`grep -rn "tinywasm/orm" .` vacío).
+  tres). **Cero** `webtyp.com/orm` en todo el repo (`grep -rn "webtyp/orm" .` vacío).
 - `TestSqlt_DBConformance` verde: schema vía `ExportDDL`, DML round-trip sobre `storage/conformance`.
 - `TestSqlt_DDLConformance` verde: `ddl.DB`+`CompileDDL` crean/migran esquema correcto.
-- `sqlt` **no** importa `tinywasm/sqlite`; `modernc.org/sqlite` solo lo usa el test.
+- `sqlt` **no** importa `webtyp/sqlite`; `modernc.org/sqlite` solo lo usa el test.
 - `translate_test.go` adaptado a los nuevos tipos, sigue verde; `go mod tidy` limpio; publicado con
   `gopush`.
 

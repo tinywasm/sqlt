@@ -1,10 +1,10 @@
 package sqlt
 
 import (
-	"github.com/tinywasm/ddl"
-	"github.com/tinywasm/fmt"
-	"github.com/tinywasm/model"
-	"github.com/tinywasm/storage"
+	"webtyp.com/ddl"
+	"webtyp.com/fmt"
+	"webtyp.com/model"
+	"webtyp.com/storage"
 )
 
 // translateQuery converts a storage.Query into a SQLite SQL string and arguments.

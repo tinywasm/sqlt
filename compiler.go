@@ -1,10 +1,10 @@
 package sqlt
 
 import (
-	"github.com/tinywasm/ddl"
-	"github.com/tinywasm/fmt"
-	"github.com/tinywasm/model"
-	"github.com/tinywasm/storage"
+	"webtyp.com/ddl"
+	"webtyp.com/fmt"
+	"webtyp.com/model"
+	"webtyp.com/storage"
 )
 
 // compiler implements storage.Compiler (DML) and ddl.Compiler (DDL).
